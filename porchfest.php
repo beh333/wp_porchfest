@@ -1,7 +1,8 @@
 <?php
+
 /**
  * @package PorchFest_PLUS
- * @version 1.0
+ * @version 0.9
  */
 
 /*
@@ -15,11 +16,9 @@
  * 4. Default search is on porch and band post types (including tag and category archives)
  *
  * Author: Bruce Hoppe
- * Version: 1.0
+ * Version: 0.9
  * Author URI:
  */
-include_once 'googlemaps_api.php';
-
 function search_for_porches_and_bands($wp_query)
 {
     if (is_search() || is_tag() || is_category() || is_author()) {
@@ -62,8 +61,10 @@ add_action('acf/save_post', 'APF_post_beforesaving', 2);
 function APF_post_aftersaving($post_id)
 {
     $this_post = get_post($post_id);
-    if ($this_post->post_type != 'porch') {
-        return;
+    switch ($this_post->post_type) {
+        case 'band':
+            
+            return;
     }
     
     $status_1 = get_field('status_of_slot_1', $this_post->ID);
@@ -259,45 +260,49 @@ function APF_validate_slot($valid, $value, $field, $input)
 }
 add_filter('acf/validate_value/name=perf_times_1', 'APF_validate_slot', 10, 4);
 
-function APF_get_band_host($band_post, $exclude)
+function APF_get_band_host($band_id, $band_name, $method, $exclude)
 {
+    switch ($method) {
+        case 'by_name':
+            $meta_query = array(
+                'relation' => 'OR',
+                array(
+                    'key' => 'band_name_1',
+                    'value' => sanitize_title($band_name),
+                    'compare' => '='
+                ),
+                array(
+                    'key' => 'band_name_2',
+                    'value' => sanitize_title($band_name),
+                    'compare' => '='
+                )
+            );
+            break;
+        case 'by_link':
+            $meta_query = array(
+                'relation' => 'OR',
+                array(
+                    'key' => 'band_link_1',
+                    'value' => $band_id,
+                    'compare' => '='
+                ),
+                array(
+                    'key' => 'band_link_2',
+                    'value' => $band_id,
+                    'compare' => '='
+                )
+            );
+            break;
+        default:
+            return false;
+    }
+    
     $porch_posts = get_posts(array(
         'numberposts' => - 1,
         'post_type' => 'porch',
-        'meta_key' => 'band_link_1',
-        'meta_value' => $band_post->ID,
-        'exclude' => $exclude
+        'exclude' => $exclude,
+        'meta_query' => $meta_query
     ));
-    if (empty($porch_posts)) {
-        $porch_posts = get_posts(array(
-            'numberposts' => - 1,
-            'post_type' => 'porch',
-            'meta_key' => 'band_link_2',
-            'meta_value' => $band_post->ID,
-            'exclude' => $exclude
-        ));
-    }
-    
-    $band_name = sanitize_title($band_post->post_title);
-    
-    if (empty($porch_posts)) {
-        $porch_posts = get_posts(array(
-            'numberposts' => - 1,
-            'post_type' => 'porch',
-            'meta_key' => 'band_name_1',
-            'meta_value' => $band_name,
-            'exclude' => $exclude
-        ));
-    }
-    if (empty($porch_posts)) {
-        $porch_posts = get_posts(array(
-            'numberposts' => - 1,
-            'post_type' => 'porch',
-            'meta_key' => 'band_name_2',
-            'meta_value' => $band_name,
-            'exclude' => $exclude
-        ));
-    }
     
     if (empty($porch_posts)) {
         return false;
@@ -431,6 +436,13 @@ add_filter('acf/validate_value/name=band_link_2', 'APF_validate_match', 10, 4);
  * }
  */
 // add_filter('acf/validate_value/name=status_of_band_planning', 'APF_validate_band_status', 10, 4);
+function APF_google_map_api($api)
+{
+    $api['key'] = 'AIzaSyBhyEivpzqgJYnsFQIzpp9zAelI3kh6MN0';
+    return $api;
+}
+add_filter('acf/fields/google_map/api', 'APF_google_map_api');
+
 function APF_validate_band_post_name($messages)
 {
     global $wpdb;
@@ -508,19 +520,9 @@ function acf_get_field_key($field_name, $post_id)
     return false;
 }
 
-function APF_save_band($post_id, $post, $update)
+function APF_save_band($post_id)
 {
-    
-    /*
-     * In production code, $slug should be set only once in the plugin,
-     * preferably as a class property, rather than in each function that needs it.
-     */
-    $post_type = get_post_type($post_id);
-    
-    // If this isn't a 'band' post, don't update it.
-    if ("band" != $post_type)
-        return;
-    
+    $post = get_post($post_id);
     // If new band, check for a host
     if (! $update) {
         $host = APF_get_band_host($post, array());
@@ -555,6 +557,6 @@ function APF_save_band($post_id, $post, $update)
     }
 }
 
-add_action('save_post', 'APF_save_band', 20, 3);
+// add_action( 'save_post', 'APF_save_band', 20, 3 );
 
 ?>
