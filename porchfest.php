@@ -19,6 +19,8 @@
  * Version: 0.9
  * Author URI:
  */
+include_once 'googlemaps_api.php';
+
 function search_for_porches_and_bands($wp_query)
 {
     if (is_search() || is_tag() || is_category() || is_author()) {
@@ -61,74 +63,109 @@ add_action('acf/save_post', 'APF_post_beforesaving', 2);
 function APF_post_aftersaving($post_id)
 {
     $this_post = get_post($post_id);
-    switch ($this_post->post_type) {
-        case 'band':
-            
+    
+    /*
+     * BAND: Auto register new band if host has named it already
+     */
+    if ($this_post->post_type == 'band') {
+        $host = APF_get_band_host($post_id, $this_post, 'by_name', array());
+        if ($host) {
+            $band_name_1 = get_field('band_name_1', $host->ID);
+            $band_name_2 = get_field('band_name_2', $host->ID);
+            if (sanitize_title($band_name_1) == $this_post->post_name) {
+                $terms_1 = get_field('perf_times_1', $host->ID);
+                foreach ($terms_1 as $t1) {
+                    $results = wp_set_post_categories($post_id, array(
+                        $t1
+                    ), True);
+                }
+                return;
+            } elseif (sanitize_title($band_name_2) == $this_post->post_name) {
+                $terms_2 = get_field('perf_times_2', $host->ID);
+                foreach ($terms_2 as $t2) {
+                    $results = wp_set_post_categories($post_id, array(
+                        $t2
+                    ), True);
+                }
+                return;
+            }
+        // Otherwise categorize band 'Looking for a match'
+        } else {
+            wp_set_post_categories($post_id, array(
+                47
+            ), False);
             return;
-    }
+        }
     
-    $status_1 = get_field('status_of_slot_1', $this_post->ID);
-    $status_2 = get_field('status_of_slot_2', $this_post->ID);
-    
-    $looking_id = 47;
-    
-    if (($status_1 == 'Looking for a band') || ($status_2 == 'Looking for a band')) {
-        $results = wp_set_post_categories($this_post->ID, array(
-            $looking_id
-        ), False);
-    } else {
-        $results = wp_set_post_categories($this_post->ID, array(), False);
-    }
-    
-    // update porch categories based on perf_times
-    $terms_1 = get_field('perf_times_1');
-    $terms_2 = get_field('perf_times_2');
-    foreach ($terms_1 as $t1) {
-        $results = wp_set_post_categories($this_post->ID, array(
-            $t1
-        ), True);
-    }
-    foreach ($terms_2 as $t2) {
-        $results = wp_set_post_categories($this_post->ID, array(
-            $t2
-        ), True);
-    }
-    
-    // If no performance times are selected then slot 2 status is NA (unused)
-    if (! $terms_2) {
-        update_field('status_of_slot_2', 'NA');
-    }
-    
-    switch ($status_1) {
-        case 'Have a band':
-            update_field('band_name_1', '');
-            $band_post_id = get_field('band_link_1');
-            $band_post = get_post($band_post_id);
-            APF_schedule_band($band_post, $terms_1);
-            break;
-        case 'Have an unlisted band':
-            update_field('band_link_1', null);
-            break;
-        case 'NA':
-            // Slot 1 can't have status NA
-            break;
-    }
-    
-    switch ($status_2) {
-        case 'Have a band':
-            update_field('band_name_2', '');
-            $band_post_id = get_field('band_link_2');
-            $band_post = get_post($band_post_id);
-            APF_schedule_band($band_post, $terms_2);
-            break;
-        case 'Have an unlisted band':
-            update_field('band_link_2', null);
-            break;
-        case 'NA':
-            update_field('band_name_2', '');
-            update_field('band_link_2', null);
-            update_field('perf_times_2', null);
-            break;
+    /*
+     * HOST: Lots of housekeeping to keep fields consistent
+     */
+    } elseif ($this_post->post_type == 'porch') {
+        
+        $status_1 = get_field('status_of_slot_1', $this_post->ID);
+        $status_2 = get_field('status_of_slot_2', $this_post->ID);
+        
+        $looking_id = 47;
+        
+        if (($status_1 == 'Looking for a band') || ($status_2 == 'Looking for a band')) {
+            $results = wp_set_post_categories($this_post->ID, array(
+                $looking_id
+            ), False);
+        } else {
+            $results = wp_set_post_categories($this_post->ID, array(), False);
+        }
+        
+        // update porch categories based on perf_times
+        $terms_1 = get_field('perf_times_1');
+        $terms_2 = get_field('perf_times_2');
+        foreach ($terms_1 as $t1) {
+            $results = wp_set_post_categories($this_post->ID, array(
+                $t1
+            ), True);
+        }
+        foreach ($terms_2 as $t2) {
+            $results = wp_set_post_categories($this_post->ID, array(
+                $t2
+            ), True);
+        }
+        
+        // If no performance times are selected then slot 2 status is NA (unused)
+        if (! $terms_2) {
+            update_field('status_of_slot_2', 'NA');
+        }
+        
+        switch ($status_1) {
+            case 'Have a band':
+                update_field('band_name_1', '');
+                $band_post_id = get_field('band_link_1');
+                $band_post = get_post($band_post_id);
+                APF_schedule_band($band_post, $terms_1);
+                break;
+            case 'Have an unlisted band':
+                update_field('band_link_1', null);
+                break;
+            case 'NA':
+                // Slot 1 can't have status NA
+                break;
+        }
+        
+        switch ($status_2) {
+            case 'Have a band':
+                update_field('band_name_2', '');
+                $band_post_id = get_field('band_link_2');
+                $band_post = get_post($band_post_id);
+                APF_schedule_band($band_post, $terms_2);
+                break;
+            case 'Have an unlisted band':
+                update_field('band_link_2', null);
+                break;
+            case 'NA':
+                update_field('band_name_2', '');
+                update_field('band_link_2', null);
+                update_field('perf_times_2', null);
+                break;
+        }
+        return;
     }
 }
 add_action('acf/save_post', 'APF_post_aftersaving', 20);
@@ -311,137 +348,63 @@ function APF_get_band_host($band_id, $band_name, $method, $exclude)
     }
 }
 
-function APF_validate_match($valid, $value, $field, $input)
+function APF_validate_linked_match($valid, $value, $field, $input)
 {
-    
+    // bail early if value is already invalid
+    if (! $valid) {
+        return $valid;
+    }
+    // Did host link to band already hosted elsewhere?
+    $band_post = get_post($value);
+    $porch_posts = array(
+        APF_get_band_host($value, $band_post, 'by_link', array(
+            $_POST['post_ID']
+        ))
+    );
+    if (empty($porch_posts)) {
+        $valid = $value . ' already registered. Please link to their listing';
+    } else {
+        $valid = $band_post->post_title . ' already scheduled at ' . $porch_posts[0]->post_title;
+    }
+    return $valid;
+}
+add_filter('acf/validate_value/name=band_link_1', 'APF_validate_linked_match', 10, 4);
+add_filter('acf/validate_value/name=band_link_2', 'APF_validate_linked_match', 10, 4);
+
+function APF_validate_named_match($valid, $value, $field, $input)
+{
     // bail early if value is already invalid
     if (! $valid || ($value == '')) {
         return $valid;
     }
+    // Did host enter name of a registered band?
+    $band_post = null;
+    $same_name = get_posts(array(
+        'numberposts' => - 1,
+        'post_type' => 'band',
+        'name' => sanitize_title($value)
+    ));
     
-    if (($field['name'] == 'band_name_1') || ($field['name'] == 'band_name_2')) {
-        $band_name = $value;
-        $band_post = null;
-        $same_name_band_posts = get_posts(array(
-            'numberposts' => - 1,
-            'post_type' => 'band',
-            'name' => sanitize_title($band_name)
-        ));
-    } elseif (($field['name'] == 'band_link_1') || ($field['name'] == 'band_link_2')) {
-        $band_post = get_post($value);
-        $band_name = $band_post->post_title;
-        $same_name_band_posts = get_posts(array(
-            'numberposts' => - 1,
-            'post_type' => 'band',
-            'name' => sanitize_title($band_name),
-            'exclude' => array(
-                $band_post->ID
-            )
-        ));
-    } else {
+    // Band name not registered
+    if (empty($same_name)) {
         return $valid;
     }
+    // Band name is registered. Is it hosted elsewhere?
+    $porch_posts = array(
+        APF_get_band_host($same_name[0]->ID, $same_name, 'by_link', array(
+            $_POST['post_ID']
+        ))
+    );
     
-    $porch_posts = null;
-    
-    if ($same_name_band_posts) {
-        $porch_posts = array(
-            APF_get_band_host($same_name_band_posts[0], array(
-                $_POST['post_ID']
-            ))
-        );
-        if (empty($porch_posts)) {
-            $valid = $value . ' already registered. Please link to their listing';
-            return $valid;
-        }
-    }
     if (empty($porch_posts)) {
-        $porch_posts = get_posts(array(
-            'numberposts' => 1,
-            'post_type' => 'porch',
-            'meta_key' => 'band_name_1',
-            'meta_value' => sanitize_title($band_name),
-            'exclude' => array(
-                $_POST['post_ID']
-            )
-        ));
+        $valid = $value . ' already registered. Please link to their listing';
+    } else {
+        $valid = $value . ' already scheduled at ' . $porch_posts[0]->post_title;
     }
-    if (empty($porch_posts)) {
-        $porch_posts = get_posts(array(
-            'numberposts' => 1,
-            'post_type' => 'porch',
-            'meta_key' => 'band_name_2',
-            'meta_value' => sanitize_title($band_name),
-            'exclude' => array(
-                $_POST['post_ID']
-            )
-        ));
-    }
-    if (empty($porch_posts) && ($band_post != null)) {
-        $porch_posts = get_posts(array(
-            'numberposts' => 1,
-            'post_type' => 'porch',
-            'meta_key' => 'band_link_1',
-            'meta_value' => $band_post->ID,
-            'exclude' => array(
-                $_POST['post_ID']
-            )
-        ));
-    }
-    if (empty($porch_posts) && ($band_post != null)) {
-        $porch_posts = get_posts(array(
-            'numberposts' => 1,
-            'post_type' => 'porch',
-            'meta_key' => 'band_link_2',
-            'meta_value' => $band_post->ID,
-            'exclude' => array(
-                $_POST['post_ID']
-            )
-        ));
-    }
-    
-    if ($porch_posts) {
-        $valid = $band_name . ' already scheduled at ' . $porch_posts[0]->post_title;
-    }
-    
     return $valid;
 }
-add_filter('acf/validate_value/name=band_name_1', 'APF_validate_match', 10, 4);
-add_filter('acf/validate_value/name=band_name_2', 'APF_validate_match', 10, 4);
-add_filter('acf/validate_value/name=band_link_1', 'APF_validate_match', 10, 4);
-add_filter('acf/validate_value/name=band_link_2', 'APF_validate_match', 10, 4);
-
-/*
- * function APF_validate_band_status( $valid, $value, $field, $input ) {
- * $name = sanitize_title( $_POST['post_title'] );
- * $current_id = $_POST['post_ID'];
- *
- * $band_post = get_post( $current_id );
- * if( !$band_post ) {
- * return $valid;
- * }
- *
- * $host = APF_get_band_host( $band_post, array() );
- *
- * if( $host ) {
- * if( $value == 'Looking for a porch' ) {
- * $valid = $host->post_title . ' says they are hosting ' . $band_post->post_title;
- * }
- * } else {
- * if( $value == 'Have a porch' ) {
- * $valid = 'No host yet for ' . $band_post->post_title . '. Please ask your host to register and link to your listing.';
- * }
- * }
- * return $valid;
- * }
- */
-// add_filter('acf/validate_value/name=status_of_band_planning', 'APF_validate_band_status', 10, 4);
-function APF_google_map_api($api)
-{
-    $api['key'] = 'AIzaSyBhyEivpzqgJYnsFQIzpp9zAelI3kh6MN0';
-    return $api;
-}
-add_filter('acf/fields/google_map/api', 'APF_google_map_api');
+add_filter('acf/validate_value/name=band_name_1', 'APF_validate_named_match', 10, 4);
+add_filter('acf/validate_value/name=band_name_2', 'APF_validate_named_match', 10, 4);
 
 function APF_validate_band_post_name($messages)
 {
@@ -464,7 +427,7 @@ function APF_validate_band_post_name($messages)
     }
     return $messages;
 }
-add_action('post_updated_messages', 'APF_validate_band_post_name');
+//add_action('post_updated_messages', 'APF_validate_band_post_name');
 
 function APF_select_only_published($options, $field, $the_post)
 {
@@ -519,44 +482,5 @@ function acf_get_field_key($field_name, $post_id)
     }
     return false;
 }
-
-function APF_save_band($post_id)
-{
-    $post = get_post($post_id);
-    // If new band, check for a host
-    if (! $update) {
-        $host = APF_get_band_host($post, array());
-        ?><pre><?php var_dump( $host ); exit(); ?></pre><?php
-        if ($host) {
-            $band_name_1 = get_field('band_name_1', $host->ID);
-            $band_name_2 = get_field('band_name_2', $host->ID);
-            if (sanitize_title($band_name_1) == $post->post_name) {
-                $terms_1 = get_field('perf_times_1', $host->ID);
-                foreach ($terms_1 as $t1) {
-                    $results = wp_set_post_categories($post_id, array(
-                        $t1
-                    ), True);
-                }
-            } elseif (sanitize_title($band_name_2) == $post->post_name) {
-                $terms_2 = get_field('perf_times_2', $host->ID);
-                foreach ($terms_2 as $t2) {
-                    $results = wp_set_post_categories($post_id, array(
-                        $t2
-                    ), True);
-                }
-            } else {
-                wp_set_post_categories($post_id, array(
-                    47
-                ), False);
-            }
-        } else {
-            wp_set_post_categories($post_id, array(
-                47
-            ), False);
-        }
-    }
-}
-
-// add_action( 'save_post', 'APF_save_band', 20, 3 );
 
 ?>
