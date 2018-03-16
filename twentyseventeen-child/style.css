@@ -1,0 +1,56 @@
+/*
+ Theme Name:   Twenty Seventeen Child
+ Theme URI:    http://arlingtonporchfest.org/demo/wp-content/themes/twentyseventeen-child/
+ Description:  Twenty Seventeen Child Theme
+ Author:       Bruce Hoppe
+ Author URI:   http://arlingtonporchfest.org
+ Template:     twentyseventeen
+ Version:      1.0.0
+ License:      GNU General Public License v2 or later
+ License URI:  http://www.gnu.org/licenses/gpl-2.0.html
+ Tags:         light, dark, two-columns, right-sidebar, responsive-layout, accessibility-ready
+ Text Domain:  twenty-seventeen-child
+*/
+
+
+
+.APF-listing-header {
+
+}
+
+.APF-listing-title {
+
+}
+
+.APF-listing-author {
+
+}
+
+.APF-listing-description {
+        display: block;
+        margin-bottom: 0;
+}
+
+.APF-listing-major-info {
+	display: inline-block;
+	width: 60%;
+	vertical-align: top;
+
+}
+
+.APF-listing-slot {
+	display: block;
+}
+
+.APF-listing-minor-info {
+	display: inline-block;
+        width: 37%;
+	text-align: right;
+	vertical-align: top;
+
+}
+
+.APF-listing-footer {
+
+}
+
