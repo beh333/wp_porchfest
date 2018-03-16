@@ -53,12 +53,16 @@ function APF_post_beforesaving($post_id)
         // clear out band schedules so we don't leave orphans
         $band_post = get_field('band_link_1'); // gets old value before $_POST
         if ($band_post) {
+            update_field('porch_link', null, $band_post->ID);
+            update_field('porch_address', '', $band_post->ID);
             wp_set_post_categories($band_post->ID, array(
                 $looking_id
             ), False);
         }
         $band_post = get_field('band_link_2'); // gets old value
         if ($band_post) {
+            update_field('porch_link', null, $band_post->ID);
+            update_field('porch_address', '', $band_post->ID);
             wp_set_post_categories($band_post->ID, array(
                 $looking_id
             ), False);
@@ -150,11 +154,7 @@ function APF_post_aftersaving($post_id)
             $band_name_2 = get_field('band_name_2', $host->ID);
             if (sanitize_title($band_name_1) == $this_post->post_name) {
                 $terms_1 = get_field('perf_times_1', $host->ID);
-                foreach ($terms_1 as $t1) {
-                    $results = wp_set_post_categories($post_id, array(
-                        $t1
-                    ), True);
-                }
+                APF_schedule_band($this_post, $host, $terms_1, True);
                 // Update host info: band is linked, not named
                 update_field('band_name_1', '', $host->ID);
                 update_field('band_link_1', $post_id, $host->ID);
@@ -162,11 +162,7 @@ function APF_post_aftersaving($post_id)
                 return;
             } elseif (sanitize_title($band_name_2) == $this_post->post_name) {
                 $terms_2 = get_field('perf_times_2', $host->ID);
-                foreach ($terms_2 as $t2) {
-                    $results = wp_set_post_categories($post_id, array(
-                        $t2
-                    ), True);
-                }
+                APF_schedule_band($this_post, $host, $terms_2, True);
                 // Update host info: band is linked, not named
                 update_field('band_name_2', '', $host->ID);
                 update_field('band_link_2', $post_id, $host->ID);
@@ -221,13 +217,15 @@ function APF_post_aftersaving($post_id)
     if (! $terms_2) {
         update_field('status_of_slot_2', 'NA');
     }
-    
+    /*
+     * Update band info based on slot 1
+     */
     switch ($status_1) {
         case 'Have a band':
             update_field('band_name_1', '');
             $band_post_id = get_field('band_link_1');
             $band_post = get_post($band_post_id);
-            APF_schedule_band($band_post, $terms_1);
+            APF_schedule_band($band_post, $this_post, $terms_1, True);
             break;
         case 'Have an unlisted band':
             update_field('band_link_1', null);
@@ -236,13 +234,15 @@ function APF_post_aftersaving($post_id)
             // Slot 1 can't have status NA
             break;
     }
-    
+    /*
+     * Update band info based on slot 2
+     */
     switch ($status_2) {
         case 'Have a band':
             update_field('band_name_2', '');
             $band_post_id = get_field('band_link_2');
             $band_post = get_post($band_post_id);
-            APF_schedule_band($band_post, $terms_2);
+            APF_schedule_band($band_post, $this_post, $terms_2, True);
             break;
         case 'Have an unlisted band':
             update_field('band_link_2', null);
@@ -261,15 +261,39 @@ add_action('acf/save_post', 'APF_post_aftersaving', 20);
 /*
  * Copy band times into its post categories.
  * We merge multiple slots of times into the categories for the one post.
+ * If $looks_good is false then we CANCEL the band
  */
-function APF_schedule_band($band_post, $terms)
+function APF_schedule_band($band_post, $porch_post, $terms, $looks_good)
 {
     if ($band_post) {
         wp_set_post_categories($band_post->ID, array(), False);
-        foreach ($terms as $term) {
+        if ($looks_good) {
+            update_field('porch_link', $porch_post->ID, $band_post->ID);
+            update_field('porch_address', $porch_post->post_title, $band_post->ID);
+            foreach ($terms as $term) {
+                wp_set_post_categories($band_post->ID, array(
+                    $term
+                ), True);
+            }
+        } else {
+            update_field('porch_link', null, $band_post->ID);
+            update_field('porch_address', '', $band_post->ID);
             wp_set_post_categories($band_post->ID, array(
-                $term
+                47
             ), True);
+            wp_set_post_categories($porch_post->ID, array(
+                47
+            ), True);
+            $band_link_1 = get_field('band_link_1', $porch_post->ID);
+            $band_link_2 = get_field('band_link_2', $porch_post->ID);
+            
+            if ($band_link_1->ID == $band_post->ID) {
+                update_field('status_of_slot_1', 'Looking for a band', $porch_post->ID);
+                update_field('band_link_1', null, $porch_post->ID);
+            } elseif ($band_link_2->ID == $band_post->ID) {
+                update_field('status_of_slot_2', 'Looking for a band', $porch_post->ID);
+                update_field('band_link_2', null, $porch_post->ID);
+            }
         }
     }
 }
@@ -444,7 +468,7 @@ function APF_validate_named_match($valid, $value, $field, $input)
         $_POST['post_ID']
     ));
     
-    if (!$porch_post) {
+    if (! $porch_post) {
         $valid = $value . ' already registered. Please link to their listing';
     } else {
         $valid = $value . ' already scheduled at ' . $porch_post->post_title;
@@ -455,6 +479,33 @@ add_filter('acf/validate_value/name=band_name_1', 'APF_validate_named_match', 10
 add_filter('acf/validate_value/name=band_name_2', 'APF_validate_named_match', 10, 4);
 
 /*
+ * Band clicks cancel and "yes I am sure"
+ */
+function APF_validate_band_cancel($messages)
+{
+    global $post;
+    if ($post->post_type == 'band') {
+        $band_post = $post;
+        $current_id = $band_post->ID;
+        $value = get_field('are_you_sure', $band_post->ID);
+        update_field('cancel', 'no', $band_post->ID);
+        update_field('are_you_sure', 'no', $band_post->ID);
+        if ($value == 'yes') { // yes I am sure I want to cancel
+            $host = APF_get_band_host($band_post->ID, $band_post, 'by_link', array());
+            APF_schedule_band($band_post, $host, array(), False);
+            $error_message = $band_post->post_title . ' has successfully cancelled';
+            add_settings_error('band_cancelled', '', $error_message, 'updated');
+            settings_errors('band_cancelled', False, True);
+            // $post->post_status = 'draft';
+            wp_update_post($post);
+            return;
+        }
+    }
+    return $messages;
+}
+add_action('post_updated_messages', 'APF_validate_band_cancel');
+
+/*
  * Prevent duplicate band names by converting duplicate into draft status
  */
 function APF_validate_band_post_name($messages)
@@ -462,19 +513,21 @@ function APF_validate_band_post_name($messages)
     global $wpdb;
     global $post;
     
-    $name = sanitize_title($post->post_title);
-    $current_id = $post->ID;
-    
-    $wtitlequery = "SELECT post_name FROM $wpdb->posts WHERE post_status = 'publish' AND post_type = 'band' AND post_name = '{$name}' AND ID != {$current_id} ";
-    
-    $wresults = $wpdb->get_results($wtitlequery);
-    if ($wresults) {
-        $error_message = $post->post_title . ' already registered';
-        add_settings_error('post_has_links', '', $error_message, 'error');
-        settings_errors('post_has_links');
-        $post->post_status = 'draft';
-        wp_update_post($post);
-        return;
+    if ($post->post_type == 'band') {
+        $name = sanitize_title($post->post_title);
+        $current_id = $post->ID;
+        
+        $wtitlequery = "SELECT post_name FROM $wpdb->posts WHERE post_status = 'publish' AND post_type = 'band' AND post_name = '{$name}' AND ID != {$current_id} ";
+        
+        $wresults = $wpdb->get_results($wtitlequery);
+        if ($wresults) {
+            $error_message = $post->post_title . ' already registered';
+            add_settings_error('post_has_links', '', $error_message, 'error');
+            settings_errors('post_has_links');
+            $post->post_status = 'draft';
+            wp_update_post($post);
+            return;
+        }
     }
     return $messages;
 }
