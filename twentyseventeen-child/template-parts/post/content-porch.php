@@ -18,7 +18,7 @@
 		echo twentyseventeen_get_svg( array( 'icon' => 'thumb-tack' ) );
 	endif;
 	?>
-	<header class="entry-header">
+	<header class="entry-header"><div class='APF-listing-header'>
 		<?php
 		if ( 'post' === get_post_type() ) {
 			echo '<div class="entry-meta">';
@@ -39,7 +39,7 @@
 			the_title( '<h2 class="entry-title"><a href="' . esc_url( get_permalink() ) . '" rel="bookmark">', '</a></h2>' );
 		}
 		?>
-	</header><!-- .entry-header -->
+	</div></header><!-- .entry-header -->
 
 	<?php if ( '' !== get_the_post_thumbnail() && ! is_single() ) : ?>
 		<div class="post-thumbnail">
@@ -50,13 +50,44 @@
 	<?php endif; ?>
 
 	<div class="entry-content">
-		<?php
-		/* translators: %s: Name of current post */
-		the_content( sprintf(
-			__( 'Continue reading<span class="screen-reader-text"> "%s"</span>', 'twentyseventeen' ),
-			get_the_title()
-		) );
+		<div class='APF-listing-description'>
+			<?php
 
+			the_content( sprintf(
+				__( 'Continue reading<span class="screen-reader-text"> "%s"</span>', 'twentyseventeen' ),
+				get_the_title()
+			) ); ?>
+		</div>
+
+		<div class='APF-listing-major-info'>
+			<div class='APF-match'><?php
+                $all_slots = array(array(
+                   "status" => get_field('status_of_slot_1'),
+                    "perf_times" => get_field('perf_times_1'),
+                    "band_post" => get_field('band_link_1'),
+                    "band_name" => get_field('band_name_1')
+                    ),
+                        array(
+                    "status" => get_field('status_of_slot_2'),
+                    "perf_times" => get_field('perf_times_2'),
+                    "band_post" => get_field('band_link_2'),
+                    "band_name" => get_field('band_name_2')
+                    )
+                );
+                APF_display_all_bands_for_porch($all_slots);
+                ?>
+			</div>
+			<div class='APF-genre'><?php the_terms( $post->ID, 'post_tag', 'Genre(s): ', ', ', ' ' ); ?></div>
+		</div>
+
+		<div class='APF-listing-minor-info'>
+			<div class='APF-rain'><?php the_terms( $post->ID, 'raindate', 'Rain date: '); ?></div>
+			<div class='APF-misc'><?php $field = get_field_object('capacity');  echo $field['label'] . ': ' . $field['value']; ?></div>
+		</div><?php
+			
+		/*
+		 * Back to standard content template
+		 */
 		wp_link_pages( array(
 			'before'      => '<div class="page-links">' . __( 'Pages:', 'twentyseventeen' ),
 			'after'       => '</div>',
@@ -66,10 +97,6 @@
 		?>
 	</div><!-- .entry-content -->
 
-	<?php
-	if ( is_single() ) {
-		twentyseventeen_entry_footer();
-	}
-	?>
+	<div class="APF-listing-footer"><?php twentyseventeen_entry_footer(); ?></div>
 
 </article><!-- #post-## -->

@@ -49,8 +49,24 @@ get_header(); ?>
 
 		else :
 
-			get_template_part( 'template-parts/post/content', 'none' );
+			if ( is_user_logged_in() ):
 
+			    global $current_user;
+ 			    wp_get_current_user();
+			    $author_query = array('posts_per_page' => '-1','author' => $current_user->ID);
+			    $author_posts = new WP_Query($author_query);
+			    while($author_posts->have_posts()) : $author_posts->the_post();
+			    ?>
+			        <a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>       
+			    <?php           
+			    endwhile;
+
+			else :
+
+			    get_template_part( 'template-parts/post/content', 'none' );
+
+			endif;
+			
 		endif; ?>
 
 		</main><!-- #main -->
