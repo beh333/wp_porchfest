@@ -368,8 +368,13 @@ add_filter('acf/validate_value/name=perf_times_1', 'APF_validate_slot', 10, 4);
  * Ideally we want to allow for approximate string matching
  * Return one matching post, or Return FALSE if no match
  */
-function APF_get_band_host($band_id, $band_post, $method, $exclude)
+function APF_get_band_host($band_id, $band_p, $method, $exclude)
 {
+    if($band_p) {
+       $band_post = $band_p; 
+    } else {
+        $band_post = get_post($band_id);
+    }
     switch ($method) {
         case 'by_name':
             $meta_query = array(
@@ -399,6 +404,31 @@ function APF_get_band_host($band_id, $band_post, $method, $exclude)
                     'value' => $band_id,
                     'compare' => '='
                 )
+            );
+        case 'both':
+            $meta_query = array(
+                'relation' => 'OR',
+                array(
+                    'key' => 'band_name_1',
+                    'value' => $band_post->post_title, // sanitized??
+                    'compare' => '='
+                ),
+                array(
+                    'key' => 'band_name_2',
+                    'value' => $band_post->post_title,
+                    'compare' => '='
+                ),
+                array(
+                    'key' => 'band_link_1',
+                    'value' => $band_id,
+                    'compare' => '='
+                ),
+                array(
+                    'key' => 'band_link_2',
+                    'value' => $band_id,
+                    'compare' => '='
+                )
+            
             );
             break;
         default:
