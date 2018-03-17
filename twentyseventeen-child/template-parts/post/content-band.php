@@ -11,8 +11,7 @@
  */
 
 ?>
-
-<article id="post-&lt;?php the_ID(); ?&gt;" <?php post_class(); ?>>
+<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
 	<?php
 	if ( is_sticky() && is_home() ) :
 		echo twentyseventeen_get_svg( array( 'icon' => 'thumb-tack' ) );
@@ -43,7 +42,7 @@
 
 	<?php if ( '' !== get_the_post_thumbnail() && ! is_single() ) : ?>
 		<div class="post-thumbnail">
-			<a href="&lt;?php the_permalink(); ?&gt;">
+		    <a href="<?php the_permalink(); ?>">
 				<?php the_post_thumbnail( 'twentyseventeen-featured-image' ); ?>
 			</a>
 		</div><!-- .post-thumbnail -->
@@ -68,7 +67,7 @@
                 if ($porch_post) {
                     $post = $porch_post;
                     setup_postdata($post);
-                    ?><a href="&lt;?php the_permalink(); ?&gt;"><?php the_title(); ?></a> @ <?php
+                    ?><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a> @ <?php
                     wp_reset_postdata();
                     $perf_times = get_the_term_list($post->ID, 'category', '', ', ', ' ');
                     if ($perf_times) {

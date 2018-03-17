@@ -66,7 +66,7 @@ function APF_display_porch_times($terms)
             $t = get_term((int) $term, 'category');
             $t_link = get_term_link((int) $term, 'category');
             ?>
-<a href="<?php echo $t_link; ?>"><?php echo $t->name; ?></a><?php
+<a href="<?php echo $t_link; ?>"><?php echo $t->name; ?></a> <?php
         }
     } else {
         echo 'Performance time not yet scheduled';
