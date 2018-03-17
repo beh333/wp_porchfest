@@ -188,6 +188,7 @@ function APF_post_aftersaving($post_id)
         
         $looking_id = 47;
         
+        // Initialize porch slot status either "Looking" or empty
         if (($status_1 == 'Looking for a band') || ($status_2 == 'Looking for a band')) {
             $results = wp_set_post_categories($this_post->ID, array(
                 $looking_id
@@ -196,7 +197,7 @@ function APF_post_aftersaving($post_id)
             $results = wp_set_post_categories($this_post->ID, array(), False);
         }
         
-        // update porch categories based on perf_times
+        // And then update porch categories based on perf_times
         $terms_1 = get_field('perf_times_1');
         $terms_2 = get_field('perf_times_2');
         foreach ($terms_1 as $t1) {
@@ -230,6 +231,10 @@ function APF_post_aftersaving($post_id)
         case 'Have an unlisted band':
             update_field('band_link_1', null);
             break;
+        case 'Looking for a band':
+            update_field('band_name_1', '');
+            update_field('band_link_1', null);
+            break;
         case 'NA':
             // Slot 1 can't have status NA
             break;
@@ -245,6 +250,10 @@ function APF_post_aftersaving($post_id)
             APF_schedule_band($band_post, $this_post, $terms_2, True);
             break;
         case 'Have an unlisted band':
+            update_field('band_link_2', null);
+            break;
+        case 'Looking for a band':
+            update_field('band_name_2', '');
             update_field('band_link_2', null);
             break;
         case 'NA':
@@ -370,8 +379,8 @@ add_filter('acf/validate_value/name=perf_times_1', 'APF_validate_slot', 10, 4);
  */
 function APF_get_band_host($band_id, $band_p, $method, $exclude)
 {
-    if($band_p) {
-       $band_post = $band_p; 
+    if ($band_p) {
+        $band_post = $band_p;
     } else {
         $band_post = get_post($band_id);
     }
@@ -509,59 +518,141 @@ add_filter('acf/validate_value/name=band_name_1', 'APF_validate_named_match', 10
 add_filter('acf/validate_value/name=band_name_2', 'APF_validate_named_match', 10, 4);
 
 /*
- * Band clicks cancel and "yes I am sure"
+ * Porchfest update messages.
+ * Adapted from standard WP messages
  */
-function APF_validate_band_cancel($messages)
+function APF_updated_messages($messages)
 {
-    global $post;
-    if ($post->post_type == 'band') {
-        $band_post = $post;
-        $current_id = $band_post->ID;
-        $value = get_field('are_you_sure', $band_post->ID);
-        update_field('cancel', 'no', $band_post->ID);
-        update_field('are_you_sure', 'no', $band_post->ID);
-        if ($value == 'yes') { // yes I am sure I want to cancel
-            $host = APF_get_band_host($band_post->ID, $band_post, 'by_link', array());
-            APF_schedule_band($band_post, $host, array(), False);
-            $error_message = $band_post->post_title . ' has successfully cancelled';
-            add_settings_error('band_cancelled', '', $error_message, 'updated');
-            settings_errors('band_cancelled', False, True);
-            // $post->post_status = 'draft';
-            wp_update_post($post);
-            return;
-        }
+    $post = get_post();
+    $post_type = get_post_type($post);
+    $post_type_object = get_post_type_object($post_type);
+
+    /*
+     * See wp-admin/edit-form-advanced.php
+     */
+    $permalink = get_permalink( $post->ID );
+    if ( ! $permalink ) {
+        $permalink = '';
+    }
+    $preview_post_link_html = $view_post_link_html = '';
+    $preview_url = get_preview_post_link( $post );
+    // Preview post link.
+    $preview_post_link_html = sprintf( ' <a target="_blank" href="%1$s">%2$s</a>',
+        esc_url( $preview_url ),
+        __( 'Preview listing' )
+        );
+    // View post link.
+    $view_post_link_html = sprintf( ' <a href="%1$s">%2$s</a>',
+        esc_url( $permalink ),
+        __( 'View listing' )
+        );
+    
+    if ($post_type == 'band') {
+        $messages['band'] = array(
+            0 => '', // Unused. Messages start at index 1.
+            1 => __('Band listing updated.') . $view_post_link_html,
+            2 => __('Custom field updated.'),
+            3 => __('Custom field deleted.'),
+            4 => __('Band listing updated.'),
+        /* translators: %s: date and time of the revision */
+        5 => isset($_GET['revision']) ? sprintf(__('Band listing restored to revision from %s.'), wp_post_revision_title((int) $_GET['revision'], false)) : false,
+            6 => __('Band listing published.') . $view_post_link_html,
+            7 => __('Band listing saved.'),
+            8 => __('Band listing submitted.') . $preview_post_link_html,
+            //9 => sprintf(__('Listing scheduled for: %s.'), '<strong>' . $scheduled_date . '</strong>') . $scheduled_post_link_html,
+            10 => __('Band draft listing updated.') . $preview_post_link_html
+        );
+        // Important 
+        // Band validation
+        $messages = APF_validate_band_save($post, $messages);
+        
+    } elseif ($post_type == 'porch') {
+        $messages['porch'] = array(
+            0 => '', // Unused. Messages start at index 1.
+            1 => __('Porch listing updated.') . $view_post_link_html,
+            2 => __('Custom field updated.'),
+            3 => __('Custom field deleted.'),
+            4 => __('Porch listing updated.'),
+        /* translators: %s: date and time of the revision */
+        5 => isset($_GET['revision']) ? sprintf(__('Porch listing restored to revision from %s.'), wp_post_revision_title((int) $_GET['revision'], false)) : false,
+            6 => __('Porch listing published.') . $view_post_link_html,
+            7 => __('Porch listing saved.'),
+            8 => __('Porch listing submitted.') . $preview_post_link_html,
+            //9 => sprintf(__('Listing scheduled for: %s.'), '<strong>' . $scheduled_date . '</strong>') . $scheduled_post_link_html,
+            10 => __('Porch draft listing updated.') . $preview_post_link_html
+        );
+        // Porch validation happened before post is saved
+        // So there is no APF_validate_porch_save here 
     }
     return $messages;
 }
-add_action('post_updated_messages', 'APF_validate_band_cancel');
+add_filter('post_updated_messages', 'APF_updated_messages');
+
+function APF_validate_band_save($band_post, $messages)
+{
+    $messages = APF_validate_band_cancel($band_post, $messages);
+    $messages = APF_validate_band_name($band_post, $messages);
+    return $messages;
+}
+
+/*
+ * Band clicks cancel and "yes I am sure"
+ */
+function APF_validate_band_cancel($band_post, $messages)
+{
+    if($band_post->post_name=='') {
+        return $messages;
+    }
+    // Check if user is sure -- cancel performance
+    $value = get_field('are_you_sure', $band_post->ID);
+    // Reset the cancel and are-you-sure fields for future
+    update_field('cancel', 'no', $band_post->ID);
+    update_field('are_you_sure', 'no', $band_post->ID);
+    // Cancel the performance if user is sure
+    if ($value == 'yes') { 
+        $host = APF_get_band_host($band_post->ID, $band_post, 'by_link', array());
+        APF_schedule_band($band_post, $host, array(), False); // False => Cancel
+        $error_message = $band_post->post_title . ' has successfully cancelled';
+        add_settings_error('APF_option_group', esc_attr('band_canceled'), $error_message, 'updated');
+        settings_errors('APF_option_group', False, True);
+    }
+    return $messages;
+}
 
 /*
  * Prevent duplicate band names by converting duplicate into draft status
  */
-function APF_validate_band_post_name($messages)
+function APF_validate_band_name($band_post, $messages)
 {
-    global $wpdb;
-    global $post;
-    
-    if ($post->post_type == 'band') {
-        $name = sanitize_title($post->post_title);
-        $current_id = $post->ID;
-        
-        $wtitlequery = "SELECT post_name FROM $wpdb->posts WHERE post_status = 'publish' AND post_type = 'band' AND post_name = '{$name}' AND ID != {$current_id} ";
-        
-        $wresults = $wpdb->get_results($wtitlequery);
-        if ($wresults) {
-            $error_message = $post->post_title . ' already registered';
-            add_settings_error('post_has_links', '', $error_message, 'error');
-            settings_errors('post_has_links');
-            $post->post_status = 'draft';
-            wp_update_post($post);
-            return;
-        }
+    if($band_post->post_name=='') {
+        return $messages;
+    }
+    $duplicate_name = get_posts(array(
+        'numberposts' => -1,
+        'post_type' => 'band',
+        'post_status' => 'publish',
+        'name' => sanitize_title($band_post->post_title),
+        'exclude' => array(
+            $band_post->ID
+        )
+    )); 
+    if (!empty($duplicate_name)) {
+        $error_message = $band_post->post_title . ' already registered';
+        add_settings_error('APF_option_group', esc_attr('band_duplicate'), $error_message, 'error');
+        settings_errors('APF_option_group', False, True);
+        $band_post->post_status = 'draft';
+        wp_update_post($band_post);
     }
     return $messages;
 }
-add_action('post_updated_messages', 'APF_validate_band_post_name');
+
+
+function APF_register_settings () {
+    // register_setting( $option_group, $option_name, $sanitize_callback );
+    register_setting('APF_option_group', 'APF_option_group', 'APF_validate_band_save');
+}
+add_action( 'admin_init', 'APF_register_settings' );
+
 
 /*
  * Filter UI select box so that only published listings appear
@@ -619,5 +710,54 @@ function acf_get_field_key($field_name, $post_id)
     }
     return false;
 }
+
+/**
+ * Simple helper function for make menu item objects
+ *
+ * @param $title -
+ *            menu item title
+ * @param $url -
+ *            menu item url
+ * @param $order -
+ *            where the item should appear in the menu
+ * @param int $parent
+ *            - the item's parent item
+ * @return \stdClass
+ */
+function _custom_nav_menu_item($title, $url, $order, $parent = 0)
+{
+    $item = new stdClass();
+    $item->ID = 1000000 + $order + $parent;
+    $item->db_id = $item->ID;
+    $item->title = $title;
+    $item->url = $url;
+    $item->menu_order = $order;
+    $item->menu_item_parent = $parent;
+    $item->type = '';
+    $item->object = '';
+    $item->object_id = '';
+    $item->classes = array();
+    $item->target = '';
+    $item->attr_title = '';
+    $item->description = '';
+    $item->xfn = '';
+    $item->status = '';
+    return $item;
+}
+
+function custom_nav_menu_items($items, $menu)
+{
+    // only add item to a specific menu
+    if ($menu->slug == 'search-menu') {
+        
+        // only add profile link if user is logged in
+        if (get_current_user_id()) {
+            $items[] = _custom_nav_menu_item('My Page', get_author_posts_url(get_current_user_id()), 99);
+        }
+    }
+    
+    return $items;
+}
+// add_filter( 'wp_get_nav_menu_items', 'custom_nav_menu_items', 20, 2 );
 
 ?>
