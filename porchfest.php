@@ -571,29 +571,33 @@ function APF_updated_messages($messages)
 }
 add_filter('post_updated_messages', 'APF_updated_messages');
 
+
 /*
  * Band clicks cancel and "yes I am sure"
  */
-function APF_validate_band_cancel($data, $postarr)
+function APF_validate_band_cancel($post_id)
 {
-    if ($data['post_type'] != 'band') {
-        return $data;
+    $band_post = get_post($post_id);
+    if ($band_post->post_type != 'band') {
+        return;
     }
-    $band_post = get_post($postarr['ID']);
-    $cancel_key = acf_get_field_key('cancel', $postarr['ID']);
-    $sure_key = acf_get_field_key('are_you_sure', $postarr['ID']);
-    $value = $_POST['acf'][$sure_key];
-    // Reset the cancel and are-you-sure fields for future
-    $_POST['acf'][$cancel_key] = 'no';
-    $_POST['acf'][$sure_key] = 'no';
+    //$cancel_key = acf_get_field_key('cancel', $post_id);
+    //$sure_key = acf_get_field_key('are_you_sure', $post_id);
+    //$value = $_POST['acf'][$sure_key];
+    //$_POST['acf'][$cancel_key] = 'no';
+    //$_POST['acf'][$sure_key] = 'no';
+    $value = get_field('are_you_sure');
+    update_field('cancel', 'no');
+    update_field('are_you_sure', 'no');
     // Cancel the performance if user is sure
     if ($value == 'yes') {
         $host = APF_get_band_host($post_id, $band_post, 'by_link', array());
         APF_schedule_band($band_post, $host, array(), False); // False => Cancel
+        // confirmation message would be nice here
     }
-    return $data;
+    return;
 }
-add_filter('wp_insert_post_data', 'APF_validate_band_cancel', 10, 2);
+add_filter('acf/save_post', 'APF_validate_band_cancel', 20);
 
 /*
  * Prevent duplicate band names by converting status to draft
