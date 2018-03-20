@@ -2,7 +2,7 @@
 
 /**
  * @package PorchFest_PLUS
- * @version 1.0
+ * @version 1.1
  */
 
 /*
@@ -16,7 +16,7 @@
  * 4. Default search is on porch and band post types (including tag and category archives)
  *
  * Author: Bruce Hoppe
- * Version: 1.0
+ * Version: 1.1
  * Author URI:
  */
 include_once 'googlemaps_api.php';
@@ -264,13 +264,12 @@ function APF_post_aftersaving($post_id)
     }
     return;
 }
-
 add_action('acf/save_post', 'APF_post_aftersaving', 20);
 
 /*
  * Copy band times into its post categories.
- * We merge multiple slots of times into the categories for the one post.
- * If $looks_good is false then we CANCEL the band
+ * Merge multiple slots of times into the categories for the one post.
+ * If $looks_good is false then CANCEL the band
  */
 function APF_schedule_band($band_post, $porch_post, $terms, $looks_good)
 {
@@ -526,133 +525,132 @@ function APF_updated_messages($messages)
     $post = get_post();
     $post_type = get_post_type($post);
     $post_type_object = get_post_type_object($post_type);
-
+    
     /*
      * See wp-admin/edit-form-advanced.php
      */
-    $permalink = get_permalink( $post->ID );
-    if ( ! $permalink ) {
+    $permalink = get_permalink($post->ID);
+    if (! $permalink) {
         $permalink = '';
     }
     $preview_post_link_html = $view_post_link_html = '';
-    $preview_url = get_preview_post_link( $post );
+    $preview_url = get_preview_post_link($post);
     // Preview post link.
-    $preview_post_link_html = sprintf( ' <a target="_blank" href="%1$s">%2$s</a>',
-        esc_url( $preview_url ),
-        __( 'Preview listing' )
-        );
+    $preview_post_link_html = sprintf(' <a target="_blank" href="%1$s">%2$s</a>', esc_url($preview_url), __('Preview listing'));
     // View post link.
-    $view_post_link_html = sprintf( ' <a href="%1$s">%2$s</a>',
-        esc_url( $permalink ),
-        __( 'View listing' )
-        );
+    $view_post_link_html = sprintf(' <a href="%1$s">%2$s</a>', esc_url($permalink), __('View listing'));
     
     if ($post_type == 'band') {
-        $messages['band'] = array(
-            0 => '', // Unused. Messages start at index 1.
-            1 => __('Band listing updated.') . $view_post_link_html,
-            2 => __('Custom field updated.'),
-            3 => __('Custom field deleted.'),
-            4 => __('Band listing updated.'),
-        /* translators: %s: date and time of the revision */
-        5 => isset($_GET['revision']) ? sprintf(__('Band listing restored to revision from %s.'), wp_post_revision_title((int) $_GET['revision'], false)) : false,
-            6 => __('Band listing published.') . $view_post_link_html,
-            7 => __('Band listing saved.'),
-            8 => __('Band listing submitted.') . $preview_post_link_html,
-            //9 => sprintf(__('Listing scheduled for: %s.'), '<strong>' . $scheduled_date . '</strong>') . $scheduled_post_link_html,
-            10 => __('Band draft listing updated.') . $preview_post_link_html
-        );
-        // Important 
-        // Band validation
-        $messages = APF_validate_band_save($post, $messages);
-        
+        if ($post->post_status == 'draft') {
+            $messages['band'] = array(
+                1 => 'DRAFT band listing still not published', 
+                4 => 'DRAFT band listing still not published',
+                6 => 'DRAFT band listing not yet published', 
+                7 => 'DRAFT band listing saved.',
+                10 => 'DRAFT band draft listing updated.' 
+            );
+        } else {
+            $messages['band'] = array(
+                1 => 'Band listing updated.' . $view_post_link_html,
+                4 => 'Band listing updated.',
+                6 => 'Band listing published.' . $view_post_link_html,
+                7 => 'Band listing saved.',
+                10 => 'Band draft listing updated.' . $preview_post_link_html
+            );
+        }
     } elseif ($post_type == 'porch') {
         $messages['porch'] = array(
-            0 => '', // Unused. Messages start at index 1.
-            1 => __('Porch listing updated.') . $view_post_link_html,
-            2 => __('Custom field updated.'),
-            3 => __('Custom field deleted.'),
-            4 => __('Porch listing updated.'),
-        /* translators: %s: date and time of the revision */
-        5 => isset($_GET['revision']) ? sprintf(__('Porch listing restored to revision from %s.'), wp_post_revision_title((int) $_GET['revision'], false)) : false,
-            6 => __('Porch listing published.') . $view_post_link_html,
-            7 => __('Porch listing saved.'),
-            8 => __('Porch listing submitted.') . $preview_post_link_html,
-            //9 => sprintf(__('Listing scheduled for: %s.'), '<strong>' . $scheduled_date . '</strong>') . $scheduled_post_link_html,
-            10 => __('Porch draft listing updated.') . $preview_post_link_html
+            1 => 'Porch listing updated.' . $view_post_link_html,
+            4 => 'Porch listing updated.',
+            6 => 'Porch listing published.' . $view_post_link_html,
+            7 => 'Porch listing saved.',
+            10 => 'Porch draft listing updated.' . $preview_post_link_html
         );
-        // Porch validation happened before post is saved
-        // So there is no APF_validate_porch_save here 
     }
     return $messages;
 }
 add_filter('post_updated_messages', 'APF_updated_messages');
 
-function APF_validate_band_save($band_post, $messages)
-{
-    $messages = APF_validate_band_cancel($band_post, $messages);
-    $messages = APF_validate_band_name($band_post, $messages);
-    return $messages;
-}
-
 /*
  * Band clicks cancel and "yes I am sure"
  */
-function APF_validate_band_cancel($band_post, $messages)
+function APF_validate_band_cancel($valid, $value, $field, $input)
 {
-    if($band_post->post_name=='') {
-        return $messages;
+    // bail early if value is already invalid
+    if (! $valid) {
+        return $valid;
     }
-    // Check if user is sure -- cancel performance
-    $value = get_field('are_you_sure', $band_post->ID);
+    $band_post = get_post($_POST['ID']);
+    if ($band_post->post_name == '') {
+        return $valid;
+    }
     // Reset the cancel and are-you-sure fields for future
     update_field('cancel', 'no', $band_post->ID);
     update_field('are_you_sure', 'no', $band_post->ID);
     // Cancel the performance if user is sure
-    if ($value == 'yes') { 
+    if ($value == 'yes') {
         $host = APF_get_band_host($band_post->ID, $band_post, 'by_link', array());
         APF_schedule_band($band_post, $host, array(), False); // False => Cancel
-        $error_message = $band_post->post_title . ' has successfully cancelled';
-        add_settings_error('APF_option_group', esc_attr('band_canceled'), $error_message, 'updated');
-        settings_errors('APF_option_group', False, True);
+        $message = $band_post->post_title . ' has successfully cancelled';
+        $_POST['acf']['APF_admin_notice_special_update'] = $message;
     }
-    return $messages;
+    return $valid;
 }
+add_filter('acf/validate_value/name=are_you_sure', 'APF_validate_band_cancel', 10, 4);
 
 /*
- * Prevent duplicate band names by converting duplicate into draft status
+ * Prevent duplicate band names by converting status to draft
+ * The only possible draft band posts are duplicate names
+ * So elsewhere we generate appropriate admin notice error message
  */
-function APF_validate_band_name($band_post, $messages)
+function APF_validate_band_name($data, $postarr)
 {
-    if($band_post->post_name=='') {
-        return $messages;
+    if ($postarr['post_type'] != 'band') {
+        return $data;
     }
-    $duplicate_name = get_posts(array(
-        'numberposts' => -1,
-        'post_type' => 'band',
-        'post_status' => 'publish',
-        'name' => sanitize_title($band_post->post_title),
-        'exclude' => array(
-            $band_post->ID
-        )
-    )); 
-    if (!empty($duplicate_name)) {
-        $error_message = $band_post->post_title . ' already registered';
-        add_settings_error('APF_option_group', esc_attr('band_duplicate'), $error_message, 'error');
-        settings_errors('APF_option_group', False, True);
-        $band_post->post_status = 'draft';
-        wp_update_post($band_post);
+    if ($postarr['ID'] != 0) {
+        $duplicate_name = get_posts(array(
+            'numberposts' => - 1,
+            'post_type' => 'band',
+            'post_status' => 'publish',
+            'name' => sanitize_title($postarr['post_title']),
+            'exclude' => array(
+                $postarr['ID']
+            )
+        ));
+        if (! empty($duplicate_name)) {
+            $data['post_status'] = 'draft';
+        }
     }
-    return $messages;
+    return $data;
 }
+add_filter('wp_insert_post_data', 'APF_validate_band_name', 1000, 2);
 
-
-function APF_register_settings () {
-    // register_setting( $option_group, $option_name, $sanitize_callback );
-    register_setting('APF_option_group', 'APF_option_group', 'APF_validate_band_save');
+/*
+ * Provide admin notices for special post situations outside regular validation
+ * 1. Duplicate band name => error
+ * 2. Cancel band performance => confirm success
+ */
+function APF_admin_notice_special()
+{
+    $screen = get_current_screen();
+    
+    if ('band' == $screen->post_type) {
+        if ('post' == $screen->base) {
+            $post = get_post();
+            if ($post->post_status == 'draft') {
+                $message = $post->post_title . ' already registered. Choose a unique name.'?><div class="notice notice-error">
+	<p><?php echo $message; ?></p>
+</div><?php
+            } elseif ($_POST['acf']['APF_admin_notice_special_update']) {
+                $message = $_POST['acf']['APF_admin_notice_special_update']?><div class="notice notice-success">
+	<p><?php echo $message; ?></p>
+</div><?php
+            }
+        }
+    }
 }
-add_action( 'admin_init', 'APF_register_settings' );
-
+add_action('admin_notices', 'APF_admin_notice_special');
 
 /*
  * Filter UI select box so that only published listings appear
