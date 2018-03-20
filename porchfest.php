@@ -597,7 +597,7 @@ function APF_validate_band_cancel($post_id)
     }
     return;
 }
-add_filter('acf/save_post', 'APF_validate_band_cancel', 20);
+add_action('acf/save_post', 'APF_validate_band_cancel', 20);
 
 /*
  * Prevent duplicate band names by converting status to draft
