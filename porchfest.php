@@ -574,29 +574,26 @@ add_filter('post_updated_messages', 'APF_updated_messages');
 /*
  * Band clicks cancel and "yes I am sure"
  */
-function APF_validate_band_cancel($valid, $value, $field, $input)
+function APF_validate_band_cancel($data, $postarr)
 {
-    // bail early if value is already invalid
-    if (! $valid) {
-        return $valid;
+    if ($data['post_type'] != 'band') {
+        return $data;
     }
-    $band_post = get_post($_POST['ID']);
-    if ($band_post->post_name == '') {
-        return $valid;
-    }
+    $band_post = get_post($postarr['ID']);
+    $cancel_key = acf_get_field_key('cancel', $postarr['ID']);
+    $sure_key = acf_get_field_key('are_you_sure', $postarr['ID']);
+    $value = $_POST['acf'][$sure_key];
     // Reset the cancel and are-you-sure fields for future
-    update_field('cancel', 'no', $band_post->ID);
-    update_field('are_you_sure', 'no', $band_post->ID);
+    $_POST['acf'][$cancel_key] = 'no';
+    $_POST['acf'][$sure_key] = 'no';
     // Cancel the performance if user is sure
     if ($value == 'yes') {
-        $host = APF_get_band_host($band_post->ID, $band_post, 'by_link', array());
+        $host = APF_get_band_host($post_id, $band_post, 'by_link', array());
         APF_schedule_band($band_post, $host, array(), False); // False => Cancel
-        $message = $band_post->post_title . ' has successfully cancelled';
-        $_POST['acf']['APF_admin_notice_special_update'] = $message;
     }
-    return $valid;
+    return $data;
 }
-add_filter('acf/validate_value/name=are_you_sure', 'APF_validate_band_cancel', 10, 4);
+add_filter('wp_insert_post_data', 'APF_validate_band_cancel', 10, 2);
 
 /*
  * Prevent duplicate band names by converting status to draft
@@ -605,7 +602,7 @@ add_filter('acf/validate_value/name=are_you_sure', 'APF_validate_band_cancel', 1
  */
 function APF_validate_band_name($data, $postarr)
 {
-    if ($postarr['post_type'] != 'band') {
+    if ($data['post_type'] != 'band') {
         return $data;
     }
     if ($postarr['ID'] != 0) {
@@ -624,7 +621,7 @@ function APF_validate_band_name($data, $postarr)
     }
     return $data;
 }
-add_filter('wp_insert_post_data', 'APF_validate_band_name', 1000, 2);
+add_filter('wp_insert_post_data', 'APF_validate_band_name', 10, 2);
 
 /*
  * Provide admin notices for special post situations outside regular validation
@@ -640,10 +637,6 @@ function APF_admin_notice_special()
             $post = get_post();
             if ($post->post_status == 'draft') {
                 $message = $post->post_title . ' already registered. Choose a unique name.'?><div class="notice notice-error">
-	<p><?php echo $message; ?></p>
-</div><?php
-            } elseif ($_POST['acf']['APF_admin_notice_special_update']) {
-                $message = $_POST['acf']['APF_admin_notice_special_update']?><div class="notice notice-success">
 	<p><?php echo $message; ?></p>
 </div><?php
             }
