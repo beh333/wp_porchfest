@@ -37,7 +37,13 @@
 		} else {
 			the_title( '<h2 class="entry-title"><a href="' . esc_url( get_permalink() ) . '" rel="bookmark">', '</a></h2>' );
 		}
-		?>
+		if( current_user_can('editor') ||
+		    current_user_can('manager') ||
+		    current_user_can('administrator') ) {
+		        // stuff here for admins or editors
+		        the_author(); echo '</br>';
+		        the_author_meta('user_email');
+		}?>
 	</div></header><!-- .entry-header -->
 
 	<?php if ( '' !== get_the_post_thumbnail() && ! is_single() ) : ?>
