@@ -38,7 +38,13 @@
 		} else {
 			the_title( '<h2 class="entry-title"><a href="' . esc_url( get_permalink() ) . '" rel="bookmark">', '</a></h2>' );
 		}
-		?>
+		if( current_user_can('editor') || 
+		    current_user_can('manager') ||
+		    current_user_can('administrator') ) {
+    		// stuff here for admins or editors
+    		the_author(); echo '</br>';
+    		the_author_meta('user_email');
+         } ?>
 	</div></header><!-- .entry-header -->
 
 	<?php if ( '' !== get_the_post_thumbnail() && ! is_single() ) : ?>
@@ -58,24 +64,21 @@
 				get_the_title()
 			) ); ?>
 		</div>
-
+		 
 		<div class='APF-listing-major-info'>
-			<div class='APF-match'><?php
-                $all_slots = array(array(
-                   "status" => get_field('status_of_slot_1'),
-                    "perf_times" => get_field('perf_times_1'),
-                    "band_post" => get_field('band_link_1'),
-                    "band_name" => get_field('band_name_1')
-                    ),
-                        array(
-                    "status" => get_field('status_of_slot_2'),
-                    "perf_times" => get_field('perf_times_2'),
-                    "band_post" => get_field('band_link_2'),
-                    "band_name" => get_field('band_name_2')
-                    )
-                );
-                APF_display_all_bands_for_porch($all_slots);
-                ?>
+			<div class='APF-match'><?php 
+				$all_slots = array( array( "status" => get_field('status_of_slot_1'),
+							   "perf_times" => get_field('perf_times_1'),
+							   "band_post" => get_field('band_link_1'),
+							   "band_name" => get_field('band_name_1')
+							   ),
+						    array( "status" => get_field('status_of_slot_2'),
+							   "perf_times" => get_field('perf_times_2'),
+							   "band_post" => get_field('band_link_2'),
+							   "band_name" => get_field('band_name_2')
+							   )
+						   );
+				APF_display_all_bands_for_porch( $all_slots ); ?>
 			</div>
 			<div class='APF-genre'><?php the_terms( $post->ID, 'post_tag', 'Genre(s): ', ', ', ' ' ); ?></div>
 		</div>
