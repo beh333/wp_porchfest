@@ -51,21 +51,24 @@ function APF_post_beforesaving($post_id)
     
     if ($_POST['post_type'] == 'porch') {
         // clear out band schedules so we don't leave orphans
+        
         $band_post = get_field('band_link_1'); // gets old value before $_POST
         if ($band_post) {
-            update_field('porch_link', null, $band_post->ID);
-            update_field('porch_address', '', $band_post->ID);
-            wp_set_post_categories($band_post->ID, array(
-                $looking_id
-            ), False);
+            APF_schedule_band($band_post, $band_post->post_title, get_post($post_id), $terms, False);
+            // update_field('porch_link', null, $band_post->ID);
+            // update_field('porch_address', '', $band_post->ID);
+            // wp_set_post_categories($band_post->ID, array(
+            // $looking_id
+            // ), False);
         }
         $band_post = get_field('band_link_2'); // gets old value
         if ($band_post) {
-            update_field('porch_link', null, $band_post->ID);
-            update_field('porch_address', '', $band_post->ID);
-            wp_set_post_categories($band_post->ID, array(
-                $looking_id
-            ), False);
+            APF_schedule_band($band_post, $band_post->post_title, get_post($post_id), $terms, False);
+            // update_field('porch_link', null, $band_post->ID);
+            // update_field('porch_address', '', $band_post->ID);
+            // wp_set_post_categories($band_post->ID, array(
+            // $looking_id
+            // ), False);
         }
     }
 }
@@ -154,7 +157,7 @@ function APF_post_aftersaving($post_id)
             $band_name_2 = get_field('band_name_2', $host->ID);
             if (sanitize_title($band_name_1) == $this_post->post_name) {
                 $terms_1 = get_field('perf_times_1', $host->ID);
-                APF_schedule_band($this_post, $host, $terms_1, True);
+                APF_schedule_band($this_post, $this_post->post_title, $host, $terms_1, True);
                 // Update host info: band is linked, not named
                 update_field('band_name_1', '', $host->ID);
                 update_field('band_link_1', $post_id, $host->ID);
@@ -162,7 +165,7 @@ function APF_post_aftersaving($post_id)
                 return;
             } elseif (sanitize_title($band_name_2) == $this_post->post_name) {
                 $terms_2 = get_field('perf_times_2', $host->ID);
-                APF_schedule_band($this_post, $host, $terms_2, True);
+                APF_schedule_band($this_post, $this_post->post_title, $host, $terms_2, True);
                 // Update host info: band is linked, not named
                 update_field('band_name_2', '', $host->ID);
                 update_field('band_link_2', $post_id, $host->ID);
@@ -226,10 +229,11 @@ function APF_post_aftersaving($post_id)
             update_field('band_name_1', '');
             $band_post_id = get_field('band_link_1');
             $band_post = get_post($band_post_id);
-            APF_schedule_band($band_post, $this_post, $terms_1, True);
+            APF_schedule_band($band_post, $band_post->post_title, $this_post, $terms_1, True);
             break;
         case 'Have an unlisted band':
             update_field('band_link_1', null);
+            APF_schedule_band(False, get_field('band_name_1'), $this_post, $terms_1, True);
             break;
         case 'Looking for a band':
             update_field('band_name_1', '');
@@ -247,10 +251,11 @@ function APF_post_aftersaving($post_id)
             update_field('band_name_2', '');
             $band_post_id = get_field('band_link_2');
             $band_post = get_post($band_post_id);
-            APF_schedule_band($band_post, $this_post, $terms_2, True);
+            APF_schedule_band($band_post, $band_post->post_title, $this_post, $terms_2, True);
             break;
         case 'Have an unlisted band':
             update_field('band_link_2', null);
+            APF_schedule_band(False, get_field('band_name_2'), $this_post, $terms_1, True);
             break;
         case 'Looking for a band':
             update_field('band_name_2', '');
@@ -271,21 +276,100 @@ add_action('acf/save_post', 'APF_post_aftersaving', 20);
  * Merge multiple slots of times into the categories for the one post.
  * If $looks_good is false then CANCEL the band
  */
-function APF_schedule_band($band_post, $porch_post, $terms, $looks_good)
+function APF_schedule_band($band_post, $band_name, $porch_post, $terms, $looks_good)
 {
-    if ($band_post) {
-        wp_set_post_categories($band_post->ID, array(), False);
-        if ($looks_good) {
+    // Look for performance post
+    $perf_posts = get_posts(array(
+        'numberposts' => - 1,
+        'post_type' => 'performance',
+        'title' => $band_name,
+        'post_status' => array(
+            'publish',
+            'draft',
+            'trash'
+        ),
+        'meta_key' => 'performance_porch_link',
+        'meta_value' => $porch_post->ID
+    ));
+    
+    // Adding schedule 
+    // Start by get the performance post
+    if ($looks_good) {
+        // If found existing performance post then use it for updating
+        if (! empty($perf_posts)) {
+            $post_id = $perf_posts[0]->ID;
+        // Otherwise create new performance post
+        } else {
+            $postarr = array(
+                'ID' => 0,
+                'post_type' => 'performance',
+                'post_title' => $band_name,
+                'post_status' => 'publish'
+            );
+            $post_id = wp_insert_post($postarr);
+            update_field('performance_porch_link', $porch_post->ID, $post_id);
+            update_field('performance_map_marker', get_field('map_marker', $porch_post->ID), $post_id);
+        }
+        // Now $post_id is performance post with title, porch link, map marker;
+        // But maybe missing band link, categories, and tags.
+        // Updating hinges on whether band info comes from post or name
+        if ($band_post) {
+            // Band post keeps its own record of its porch
+            // So that porch_address is displayed in band edit form
             update_field('porch_link', $porch_post->ID, $band_post->ID);
             update_field('porch_address', $porch_post->post_title, $band_post->ID);
+            // Performance post links to the band post
+            update_field('performance_band_link', $band_post->ID, $post_id);
+            // reset categories for band and performance posts with $terms
+            wp_set_post_categories($band_post->ID, array(), False);
+            wp_set_post_categories($post_id, array(), False);
             foreach ($terms as $term) {
                 wp_set_post_categories($band_post->ID, array(
                     $term
                 ), True);
+                wp_set_post_categories($post_id, array(
+                    $term
+                ), True);
             }
+            // Set performance tags by band
+            $tags = wp_get_post_tags($band_post->ID); 
+            wp_set_post_tags($post_id, array(), False);
+            foreach ($tags as $tag) {
+                wp_set_post_tags($post_id, array(
+                    $tag->term_id
+                ), True);
+            }
+        // Case where there is no band post. Band info is named by porch
         } else {
+            // performance post has no band link, just band name
+            update_field('performance_band_link', 0, $post_id);
+            // reset categories for performance post with $terms
+            wp_set_post_categories($post_id, array(), False);
+            foreach ($terms as $term) {
+                wp_set_post_categories($post_id, array(
+                    $term
+                ), True);
+            }
+            // Set performance tags by porch
+            $tags = wp_get_post_tags($porch_post->ID);
+            wp_set_post_tags($post_id, array(), False);
+            foreach ($tags as $tag) {
+                wp_set_post_tags($post_id, array(
+                    $tag->term_id
+                ), True);
+            }
+        }
+    // Canceling schedule
+    //
+    } else {
+        // Put performance post in trash
+        if(!empty($perf_posts)) {
+            wp_delete_post($perf_posts[0]->ID);
+        }
+        if ($band_post) {
             update_field('porch_link', null, $band_post->ID);
             update_field('porch_address', '', $band_post->ID);
+            // Set band and porch categories to Looking for match
             wp_set_post_categories($band_post->ID, array(
                 47
             ), True);
@@ -294,7 +378,6 @@ function APF_schedule_band($band_post, $porch_post, $terms, $looks_good)
             ), True);
             $band_link_1 = get_field('band_link_1', $porch_post->ID);
             $band_link_2 = get_field('band_link_2', $porch_post->ID);
-            
             if ($band_link_1->ID == $band_post->ID) {
                 update_field('status_of_slot_1', 'Looking for a band', $porch_post->ID);
                 update_field('band_link_1', null, $porch_post->ID);
@@ -302,7 +385,7 @@ function APF_schedule_band($band_post, $porch_post, $terms, $looks_good)
                 update_field('status_of_slot_2', 'Looking for a band', $porch_post->ID);
                 update_field('band_link_2', null, $porch_post->ID);
             }
-        }
+        } 
     }
 }
 
@@ -458,7 +541,9 @@ function APF_get_band_host($band_id, $band_p, $method, $exclude)
 }
 
 /*
- * When porch links to a band, make sure the band is available
+ * When porch links to a band, make sure the band is available.
+ * Right now band link field is filtered to category 'looking for a match'
+ * Which technically makes this check superfluous
  */
 function APF_validate_linked_match($valid, $value, $field, $input)
 {
@@ -543,11 +628,11 @@ function APF_updated_messages($messages)
     if ($post_type == 'band') {
         if ($post->post_status == 'draft') {
             $messages['band'] = array(
-                1 => 'DRAFT band listing still not published', 
+                1 => 'DRAFT band listing still not published',
                 4 => 'DRAFT band listing still not published',
-                6 => 'DRAFT band listing not yet published', 
+                6 => 'DRAFT band listing not yet published',
                 7 => 'DRAFT band listing saved.',
-                10 => 'DRAFT band draft listing updated.' 
+                10 => 'DRAFT band draft listing updated.'
             );
         } else {
             $messages['band'] = array(
@@ -571,7 +656,6 @@ function APF_updated_messages($messages)
 }
 add_filter('post_updated_messages', 'APF_updated_messages');
 
-
 /*
  * Band clicks cancel and "yes I am sure"
  */
@@ -581,27 +665,21 @@ function APF_validate_band_cancel($post_id)
     if ($band_post->post_type != 'band') {
         return;
     }
-    //$cancel_key = acf_get_field_key('cancel', $post_id);
-    //$sure_key = acf_get_field_key('are_you_sure', $post_id);
-    //$value = $_POST['acf'][$sure_key];
-    //$_POST['acf'][$cancel_key] = 'no';
-    //$_POST['acf'][$sure_key] = 'no';
     $value = get_field('are_you_sure');
     update_field('cancel', 'no');
     update_field('are_you_sure', 'no');
     // Cancel the performance if user is sure
     if ($value == 'yes') {
         $host = APF_get_band_host($post_id, $band_post, 'by_link', array());
-        APF_schedule_band($band_post, $host, array(), False); // False => Cancel
-        // confirmation message would be nice here
+        APF_schedule_band($band_post, $band_post->post_title, $host, array(), False); // False => Cancel
     }
     return;
 }
 add_action('acf/save_post', 'APF_validate_band_cancel', 20);
 
 /*
- * Prevent duplicate band names by converting status to draft
- * The only possible draft band posts are duplicate names
+ * Prevent duplicate band names by converting status to draft.
+ * The only possible draft band posts are duplicate names,
  * So elsewhere we generate appropriate admin notice error message
  */
 function APF_validate_band_name($data, $postarr)
@@ -630,7 +708,7 @@ add_filter('wp_insert_post_data', 'APF_validate_band_name', 10, 2);
 /*
  * Provide admin notices for special post situations outside regular validation
  * 1. Duplicate band name => error
- * 2. Cancel band performance => confirm success
+ * 2. ... nothing else for now
  */
 function APF_admin_notice_special()
 {
@@ -640,7 +718,8 @@ function APF_admin_notice_special()
         if ('post' == $screen->base) {
             $post = get_post();
             if ($post->post_status == 'draft') {
-                $message = $post->post_title . ' already registered. Choose a unique name.'?><div class="notice notice-error">
+                $message = $post->post_title . ' already registered. Choose a unique name.'?><div
+	class="notice notice-error">
 	<p><?php echo $message; ?></p>
 </div><?php
             }
