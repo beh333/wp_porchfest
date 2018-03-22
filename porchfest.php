@@ -308,8 +308,7 @@ function APF_schedule_band($band_post, $band_name, $porch_post, $terms, $looks_g
             );
             $post_id = wp_insert_post($postarr);
             update_field('performance_porch_link', $porch_post->ID, $post_id);
-            // NOT WORKING
-            update_field('performance_map_maker', get_field('map_marker', $porch_post));
+            update_field('performance_map_marker', get_field('map_marker', $porch_post->ID), $post_id);
         }
         // Now $post_id is performance post with title, porch link, map marker;
         // But maybe missing band link, categories, and tags.
@@ -332,7 +331,14 @@ function APF_schedule_band($band_post, $band_name, $porch_post, $terms, $looks_g
                     $term
                 ), True);
             }
-            // To Do: ADD PERFORMANCE TAGS based on band
+            // Set performance tags by band
+            $tags = wp_get_post_tags($band_post->ID); 
+            wp_set_post_tags($post_id, array(), False);
+            foreach ($tags as $tag) {
+                wp_set_post_tags($post_id, array(
+                    $tag->term_id
+                ), True);
+            }
         // Case where there is no band post. Band info is named by porch
         } else {
             // performance post has no band link, just band name
@@ -344,9 +350,15 @@ function APF_schedule_band($band_post, $band_name, $porch_post, $terms, $looks_g
                     $term
                 ), True);
             }
-            // To Do: Add PERFORMANCE TAGS based on porch
+            // Set performance tags by porch
+            $tags = wp_get_post_tags($porch_post->ID);
+            wp_set_post_tags($post_id, array(), False);
+            foreach ($tags as $tag) {
+                wp_set_post_tags($post_id, array(
+                    $tag->term_id
+                ), True);
+            }
         }
-        
     // Canceling schedule
     //
     } else {
