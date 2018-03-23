@@ -2,38 +2,26 @@
 
 /**
  * @package PorchFest_PLUS
- * @version 1.1
+ * @version 1.2
  */
 
 /*
  * Plugin Name: Porchfest PLUS
  * Plugin URI:
- * Description: This plugin automagically sets various fields to keep porches and bands in synch.
- * In particular:
- * 1. Porch title <= porch address
- * 2. Porch slot status, times, and band info are kept consistent (e.g., status NA => clear the rest)
- * 3. Band time/category <= porch time/category, when the porch has linked to the band
- * 4. Default search is on porch and band post types (including tag and category archives)
+ * Description: Manage Porchfest bands and porches with Wordpress
+ * 
+ * Configure two custom post types: band and porch.
+ * Add advanced custom fields.
+ * Then use this plugin to keep band and porch info validated and synchronized.
  *
  * Author: Bruce Hoppe
- * Version: 1.1
+ * Version: 1.2
  * Author URI:
  */
+include_once 'apf-utilities.php';
+include_once 'apf-validations.php';
+include_once 'apf-menus.php';
 include_once 'googlemaps_api.php';
-
-/*
- * Include porch and band content types in standard search pages
- */
-function search_for_porches_and_bands($wp_query)
-{
-    if (is_search() || is_tag() || is_category() || is_author()) {
-        set_query_var('post_type', get_query_var('post_type', array(
-            'porch',
-            'band'
-        )));
-    }
-}
-add_action('pre_get_posts', 'search_for_porches_and_bands');
 
 /*
  * Right before saving updated porch info,
@@ -94,40 +82,6 @@ function APF_update_POST_title($post_id)
     }
 }
 
-/*
- * Make porch addresses short and Arlington-centric
- */
-function APF_shorten_address($address)
-{
-    $things_to_eliminate = array(
-        '/\,*\s*USA/',
-        '/\,*\s*MA/',
-        '/\,*\s*Arlington/',
-        '/\,*\s*\d{5}(?:[-\s]\d{4})?/'
-    );
-    $abbreviations = array(
-        '/Massachusetts/' => 'Mass',
-        '/Avenue/' => 'Ave',
-        '/Street/' => 'St',
-        '/Place/' => 'Pl',
-        '/Road/' => 'Rd',
-        '/Court/' => 'Ct',
-        '/Circle/' => 'Cir',
-        '/Drive/' => 'Dr',
-        '/Parkway/' => 'Pkwy',
-        '/Square/' => 'Sq',
-        '/Terrace/' => 'Ter'
-    );
-    $shortened = preg_replace($things_to_eliminate, '', $address);
-    foreach ($abbreviations as $key => $value) {
-        $shortened = preg_replace($key, $value, $shortened);
-    }
-    if ($shortened) {
-        return $shortened;
-    }
-    
-    return $address;
-}
 
 /*
  * Clean up fields for consistency right after saving a porch or band.
@@ -310,70 +264,6 @@ function APF_schedule_band($band_post, $band_name, $porch_post, $terms, $looks_g
     }
 }
 
-/*
- * Ensure each porch has a unique location
- */
-function APF_validate_map_marker($valid, $value, $field, $input)
-{
-    // bail early if value is already invalid
-    if (! $valid) {
-        return $valid;
-    }
-    
-    $current_id = $_POST['post_ID'];
-    $address = APF_shorten_address($value['address']);
-    if ($address) {
-        $same_title = get_posts(array(
-            'numberposts' => - 1,
-            'post_type' => 'porch',
-            'title' => $address,
-            'exclude' => array(
-                $current_id
-            )
-        ));
-        if ($same_title) {
-            $valid = 'Another porch already registered at ' . $address;
-        }
-    }
-    return $valid;
-}
-add_filter('acf/validate_value/name=map_marker', 'APF_validate_map_marker', 10, 4);
-
-/*
- * When porch has checked times in multiple slots,
- * Make sure the times do not overlap
- * (This is done very roughly for now)
- */
-function APF_validate_slot($valid, $value, $field, $input)
-{
-    
-    // bail early if value is already invalid
-    if (! $valid) {
-        return $valid;
-    }
-    
-    $perf_times_1 = $value;
-    
-    $status_of_slot_2_key = acf_get_field_key('status_of_slot_2', $_POST['ID']);
-    $status_of_slot_2 = $_POST['acf'][$status_of_slot_2_key];
-    
-    if (($status_of_slot_2 == 'Have a band') || ($status_of_slot_2 == 'Have an unlisted band') || ($status_of_slot_2 == 'Looking for a band')) {
-        $perf_times_2_key = acf_get_field_key('perf_times_2', $_POST['ID']);
-        $perf_times_2 = $_POST['acf'][$perf_times_2_key];
-        foreach ($perf_times_1 as &$time1) {
-            foreach ($perf_times_2 as &$time2) {
-                if ($time2 == $time1) {
-                    $valid = get_term_by('id', $time1, 'category')->name . ' cannot be selected in two different slots';
-                    return $valid;
-                }
-            }
-            unset($time2);
-        }
-        unset($time1);
-    }
-    return $valid;
-}
-add_filter('acf/validate_value/name=perf_times_1', 'APF_validate_slot', 10, 4);
 
 /*
  * Find host of a band accounting for names, links, and slots
@@ -460,299 +350,5 @@ function APF_get_band_host($band_id, $band_p, $method, $exclude)
         return $porch_posts[0];
     }
 }
-
-/*
- * When porch links to a band, make sure the band is available.
- * Right now band link field is filtered to category 'looking for a match'
- * Which technically makes this check superfluous
- */
-function APF_validate_linked_match($valid, $value, $field, $input)
-{
-    // bail early if value is already invalid
-    if (! $valid) {
-        return $valid;
-    }
-    // Did host link to band already hosted elsewhere?
-    $band_post = get_post($value);
-    $porch_post = APF_get_band_host($value, $band_post, 'by_link', array(
-        $_POST['post_ID']
-    ));
-    if ($porch_post) {
-        $valid = $band_post->post_title . ' already scheduled at ' . $porch_post->post_title;
-    }
-    return $valid;
-}
-add_filter('acf/validate_value/name=band_link_1', 'APF_validate_linked_match', 10, 4);
-add_filter('acf/validate_value/name=band_link_2', 'APF_validate_linked_match', 10, 4);
-
-/*
- * When host names a band on its schedule, make sure the band is unregistered
- * If it is registered then provide the address
- */
-function APF_validate_named_match($valid, $value, $field, $input)
-{
-    // bail early if value is already invalid
-    if (! $valid || ($value == '')) {
-        return $valid;
-    }
-    // Did host enter name of a registered band?
-    $band_post = null;
-    $same_name = get_posts(array(
-        'numberposts' => - 1,
-        'post_type' => 'band',
-        'name' => sanitize_title($value)
-    ));
-    
-    // Band name not registered
-    if (empty($same_name)) {
-        return $valid;
-    }
-    // Band name is registered. Is it hosted elsewhere?
-    $porch_post = APF_get_band_host($same_name[0]->ID, $same_name[0], 'by_link', array(
-        $_POST['post_ID']
-    ));
-    
-    if (! $porch_post) {
-        $valid = $value . ' already registered. Please link to their listing';
-    } else {
-        $valid = $value . ' already scheduled at ' . $porch_post->post_title;
-    }
-    return $valid;
-}
-add_filter('acf/validate_value/name=band_name_1', 'APF_validate_named_match', 10, 4);
-add_filter('acf/validate_value/name=band_name_2', 'APF_validate_named_match', 10, 4);
-
-/*
- * Porchfest update messages.
- * Adapted from standard WP messages
- */
-function APF_updated_messages($messages)
-{
-    $post = get_post();
-    $post_type = get_post_type($post);
-    $post_type_object = get_post_type_object($post_type);
-    
-    /*
-     * See wp-admin/edit-form-advanced.php
-     */
-    $permalink = get_permalink($post->ID);
-    if (! $permalink) {
-        $permalink = '';
-    }
-    $preview_post_link_html = $view_post_link_html = '';
-    $preview_url = get_preview_post_link($post);
-    // Preview post link.
-    $preview_post_link_html = sprintf(' <a target="_blank" href="%1$s">%2$s</a>', esc_url($preview_url), __('Preview listing'));
-    // View post link.
-    $view_post_link_html = sprintf(' <a href="%1$s">%2$s</a>', esc_url($permalink), __('View listing'));
-    
-    if ($post_type == 'band') {
-        if ($post->post_status == 'draft') {
-            $messages['band'] = array(
-                1 => 'DRAFT band listing still not published',
-                4 => 'DRAFT band listing still not published',
-                6 => 'DRAFT band listing not yet published',
-                7 => 'DRAFT band listing saved.',
-                10 => 'DRAFT band draft listing updated.'
-            );
-        } else {
-            $messages['band'] = array(
-                1 => 'Band listing updated.' . $view_post_link_html,
-                4 => 'Band listing updated.',
-                6 => 'Band listing published.' . $view_post_link_html,
-                7 => 'Band listing saved.',
-                10 => 'Band draft listing updated.' . $preview_post_link_html
-            );
-        }
-    } elseif ($post_type == 'porch') {
-        $messages['porch'] = array(
-            1 => 'Porch listing updated.' . $view_post_link_html,
-            4 => 'Porch listing updated.',
-            6 => 'Porch listing published.' . $view_post_link_html,
-            7 => 'Porch listing saved.',
-            10 => 'Porch draft listing updated.' . $preview_post_link_html
-        );
-    }
-    return $messages;
-}
-add_filter('post_updated_messages', 'APF_updated_messages');
-
-/*
- * Band clicks cancel and "yes I am sure"
- */
-function APF_validate_band_cancel($post_id)
-{
-    $band_post = get_post($post_id);
-    if ($band_post->post_type != 'band') {
-        return;
-    }
-    $value = get_field('are_you_sure');
-    update_field('cancel', 'no');
-    update_field('are_you_sure', 'no');
-    // Cancel the performance if user is sure
-    if ($value == 'yes') {
-        $host = APF_get_band_host($post_id, $band_post, 'by_link', array());
-        APF_schedule_band($band_post, $band_post->post_title, $host, array(), False); // False => Cancel
-    }
-    return;
-}
-add_action('acf/save_post', 'APF_validate_band_cancel', 20);
-
-/*
- * Prevent duplicate band names by converting status to draft.
- * The only possible draft band posts are duplicate names,
- * So elsewhere we generate appropriate admin notice error message
- */
-function APF_validate_band_name($data, $postarr)
-{
-    if ($data['post_type'] != 'band') {
-        return $data;
-    }
-    if ($postarr['ID'] != 0) {
-        $duplicate_name = get_posts(array(
-            'numberposts' => - 1,
-            'post_type' => 'band',
-            'post_status' => 'publish',
-            'name' => sanitize_title($postarr['post_title']),
-            'exclude' => array(
-                $postarr['ID']
-            )
-        ));
-        if (! empty($duplicate_name)) {
-            $data['post_status'] = 'draft';
-        }
-    }
-    return $data;
-}
-add_filter('wp_insert_post_data', 'APF_validate_band_name', 10, 2);
-
-/*
- * Provide admin notices for special post situations outside regular validation
- * 1. Duplicate band name => error
- * 2. ... nothing else for now
- */
-function APF_admin_notice_special()
-{
-    $screen = get_current_screen();
-    
-    if ('band' == $screen->post_type) {
-        if ('post' == $screen->base) {
-            $post = get_post();
-            if ($post->post_status == 'draft') {
-                $message = $post->post_title . ' already registered. Choose a unique name.'?><div
-	class="notice notice-error">
-	<p><?php echo $message; ?></p>
-</div><?php
-            }
-        }
-    }
-}
-add_action('admin_notices', 'APF_admin_notice_special');
-
-/*
- * Filter UI select box so that only published listings appear
- */
-function APF_select_only_published($options, $field, $the_post)
-{
-    $options['post_status'] = array(
-        'publish'
-    );
-    return $options;
-}
-add_filter('acf/fields/post_object/query/name=band_link_1', 'APF_select_only_published', 10, 3);
-add_filter('acf/fields/post_object/query/name=band_link_2', 'APF_select_only_published', 10, 3);
-
-/**
- * Get field key for field name.
- * Will return first matched acf field key for a give field name.
- *
- * ACF somehow requires a field key, where a sane developer would prefer a human readable field name.
- * http://www.advancedcustomfields.com/resources/update_field/#field_key-vs%20field_name
- *
- * This function will return the field_key of a certain field.
- *
- * @param $field_name String
- *            ACF Field name
- * @param $post_id int
- *            The post id to check.
- * @return
- */
-function acf_get_field_key($field_name, $post_id)
-{
-    global $wpdb;
-    $acf_fields = $wpdb->get_results($wpdb->prepare("SELECT ID,post_parent,post_name FROM $wpdb->posts WHERE post_excerpt=%s AND post_type=%s", $field_name, 'acf-field'));
-    // get all fields with that name.
-    switch (count($acf_fields)) {
-        case 0: // no such field
-            return false;
-        case 1: // just one result.
-            return $acf_fields[0]->post_name;
-    }
-    // result is ambiguous
-    // get IDs of all field groups for this post
-    $field_groups_ids = array();
-    $field_groups = acf_get_field_groups(array(
-        'post_id' => $post_id
-    ));
-    foreach ($field_groups as $field_group)
-        $field_groups_ids[] = $field_group['ID'];
-    
-    // Check if field is part of one of the field groups
-    // Return the first one.
-    foreach ($acf_fields as $acf_field) {
-        if (in_array($acf_field->post_parent, $field_groups_ids))
-            return $acf_field->post_name;
-    }
-    return false;
-}
-
-/**
- * Simple helper function for make menu item objects
- *
- * @param $title -
- *            menu item title
- * @param $url -
- *            menu item url
- * @param $order -
- *            where the item should appear in the menu
- * @param int $parent
- *            - the item's parent item
- * @return \stdClass
- */
-function _custom_nav_menu_item($title, $url, $order, $parent = 0)
-{
-    $item = new stdClass();
-    $item->ID = 1000000 + $order + $parent;
-    $item->db_id = $item->ID;
-    $item->title = $title;
-    $item->url = $url;
-    $item->menu_order = $order;
-    $item->menu_item_parent = $parent;
-    $item->type = '';
-    $item->object = '';
-    $item->object_id = '';
-    $item->classes = array();
-    $item->target = '';
-    $item->attr_title = '';
-    $item->description = '';
-    $item->xfn = '';
-    $item->status = '';
-    return $item;
-}
-
-function custom_nav_menu_items($items, $menu)
-{
-    // only add item to a specific menu
-    if ($menu->slug == 'search-menu') {
-        
-        // only add profile link if user is logged in
-        if (get_current_user_id()) {
-            $items[] = _custom_nav_menu_item('My Page', get_author_posts_url(get_current_user_id()), 99);
-        }
-    }
-    
-    return $items;
-}
-// add_filter( 'wp_get_nav_menu_items', 'custom_nav_menu_items', 20, 2 );
 
 ?>
