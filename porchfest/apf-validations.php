@@ -93,7 +93,7 @@ add_filter('acf/validate_value/name=perf_times_1', 'APF_validate_slot', 10, 4);
 
 /*
  * Validate porch links to band that is available.
- * 
+ *
  * Right now band link field is filtered to category 'looking for a match'
  * Which technically makes this check superfluous
  */
@@ -105,7 +105,7 @@ function APF_validate_linked_match($valid, $value, $field, $input)
     }
     // Did host link to band already hosted elsewhere?
     $band_post = get_post($value);
-    $porch_post = APF_get_band_host($value, $band_post, 'by_link', array(
+    $porch_post = APF_get_band_host_by('id', $value, 'id', array(
         $_POST['post_ID']
     ));
     if ($porch_post) {
@@ -125,27 +125,25 @@ function APF_validate_named_match($valid, $value, $field, $input)
     if (! $valid || ($value == '')) {
         return $valid;
     }
-    // Did host enter name of a registered band?
-    $band_post = null;
-    $same_name = get_posts(array(
-        'numberposts' => - 1,
-        'post_type' => 'band',
-        'name' => sanitize_title($value)
-    ));
-    
-    // Band name not registered
-    if (empty($same_name)) {
-        return $valid;
-    }
-    // Band name is registered. Is it hosted elsewhere?
-    $porch_post = APF_get_band_host($same_name[0]->ID, $same_name[0], 'by_link', array(
+    // Is this band hosted elsewhere?
+    $porch_post = APF_get_band_host_by('name', $value, 'both', array(
         $_POST['post_ID']
     ));
-    
-    if (! $porch_post) {
-        $valid = $value . ' already registered. Please link to their listing';
-    } else {
+    // Yes it is
+    if ($porch_post) {
         $valid = $value . ' already scheduled at ' . $porch_post->post_title;
+    }    
+    // Not hosted elsewhere. Is it registered?
+    else {
+        $same_name = get_posts(array(
+            'numberposts' => - 1,
+            'post_type' => 'band',
+            'name' => sanitize_title($value)
+        ));
+        // Yes it is
+        if (! empty($same_name)) {
+            $valid = $value . ' already registered. Please link to their listing';
+        }
     }
     return $valid;
 }
@@ -166,8 +164,10 @@ function APF_confirm_band_cancel($post_id)
     update_field('are_you_sure', 'no');
     // Cancel the performance if user is sure
     if ($value == 'yes') {
-        $host = APF_get_band_host($post_id, $band_post, 'by_link', array());
-        APF_schedule_band($band_post, $band_post->post_title, $host, array(), False); // False => Cancel
+        $host = APF_get_band_host_by('id', $post_id, 'id', array());
+        if ($host) {
+            APF_schedule_band($band_post, $band_post->post_title, $host, array(), False); // False => Cancel
+        } // else error
     }
     return;
 }

@@ -1,6 +1,39 @@
 <?php
 
 /*
+ * Get field value from a porch slot
+ * Argument $post_id is optional
+ */
+function APF_get_field($name, $slot, $post_id=0) {
+    if(in_array($slot, array(1,2,3,4))) {
+        $field_name = $name . '_' . $slot;
+        if($post_id > 0) {
+            return get_field($field_name,$post_id);
+        } else {
+            return get_field($field_name);
+        }
+    }
+    return False;
+}
+
+/*
+ * Update field value in a porch slot
+ * Argument $post_id is optional
+ */
+function APF_update_field($name, $slot, $value, $post_id=0) {
+    if(in_array($slot, array(1,2,3,4))) {
+        $field_name = $name . '_' . $slot;
+        if($post_id > 0) {
+            return update_field($field_name, $value, $post_id);
+        } else {
+            return update_field($field_name, $value);
+        }
+    }
+    return False;
+}
+
+
+/*
  * Include porch and band content types in standard wp search pages
  */
 function search_for_porches_and_bands($wp_query)
