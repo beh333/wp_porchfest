@@ -67,9 +67,7 @@
 		<div class='APF-listing-major-info'>
 			<div class='APF-match'><?php
                 // Custom field 'porch_link' gives us host of band without need to query
-                $porch_post = APF_get_band_host($post->ID, $post, 'both', array());
-                //$porch_post_id = get_field('porch_link');
-                //$porch_post = get_post($porch_post_id);
+                $porch_post = get_field('porch_link');
                 if ($porch_post) {
                     $post = $porch_post;
                     setup_postdata($post);
