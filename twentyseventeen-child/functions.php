@@ -1,5 +1,5 @@
 <?php
-add_action('acf/render_field_settings/type=text', 'add_readonly_and_disabled_to_text_field');
+//add_action('acf/render_field_settings/type=text', 'add_readonly_and_disabled_to_text_field');
 
 function add_readonly_and_disabled_to_text_field($field)
 {
@@ -29,7 +29,7 @@ function add_readonly_and_disabled_to_text_field($field)
     ));
 }
 
-add_action('acf/render_field_settings/type=post_object', 'add_readonly_and_disabled_to_po_field');
+//add_action('acf/render_field_settings/type=post_object', 'add_readonly_and_disabled_to_po_field');
 
 function add_readonly_and_disabled_to_po_field($field)
 {
@@ -76,6 +76,7 @@ function APF_display_porch_times($terms)
 function APF_display_one_band_for_porch($slot)
 {
     global $post;
+
     if ($slot['status'] == 'NA') {
         return;
     } elseif ($slot['status'] == 'Looking for a band') {
