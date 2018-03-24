@@ -60,36 +60,83 @@ add_filter('acf/validate_value/name=map_marker', 'APF_validate_map_marker', 10, 
  * Validate porch slot times do not overlap
  * (This is done very roughly for now)
  */
-function APF_validate_slot($valid, $value, $field, $input)
+function APF_validate_slot_number($slot_for_validating, $valid, $value, $field, $input)
 {
+    global $APF_max_slot;
+    global $APF_porch_slot_key;
     
     // bail early if value is already invalid
     if (! $valid) {
         return $valid;
     }
-    
-    $perf_times_1 = $value;
-    
-    $status_of_slot_2_key = acf_get_field_key('status_of_slot_2', $_POST['ID']);
-    $status_of_slot_2 = $_POST['acf'][$status_of_slot_2_key];
-    
-    if (($status_of_slot_2 == 'Have a band') || ($status_of_slot_2 == 'Have an unlisted band') || ($status_of_slot_2 == 'Looking for a band')) {
-        $perf_times_2_key = acf_get_field_key('perf_times_2', $_POST['ID']);
-        $perf_times_2 = $_POST['acf'][$perf_times_2_key];
-        foreach ($perf_times_1 as &$time1) {
-            foreach ($perf_times_2 as &$time2) {
-                if ($time2 == $time1) {
-                    $valid = get_term_by('id', $time1, 'category')->name . ' cannot be selected in two different slots';
-                    return $valid;
+    $perf_times_for_validating = $value;
+    if (empty($perf_times_for_validating)) {
+        if (1 == $slot_for_validating || in_array($_POST['acf'][$APF_porch_slot_key['status_of_slot'][$slot_for_validating]], array(
+            'Have a band',
+            'Have an unlisted band',
+            'Looking for a band'
+        ))) {
+            $valid = 'Please select at least one hour';
+        }
+        return $valid;
+    } else {
+        // Gaps OK between bands/slots but not within a band's performance
+        $first_time = min($perf_times_for_validating);
+        $last_time = max($perf_times_for_validating);
+        if (count($perf_times_for_validating) != $last_time - $first_time + 1) {
+            $valid = 'Please assign each band a contiguous set of hours without gaps';
+            return $valid;
+        }
+        // Each band/slot must be non-overlapping and later than its predecessors
+        for ($slot = $slot_for_validating + 1; $slot <= $APF_max_slot; $slot = $slot + 1) {
+            $status_of_slot = $_POST['acf'][$APF_porch_slot_key['status_of_slot'][$slot]];
+            if (in_array($status_of_slot, array(
+                'Have a band',
+                'Have an unlisted band',
+                'Looking for a band'
+            ))) {
+                $perf_times = $_POST['acf'][$APF_porch_slot_key['perf_times'][$slot]];
+                foreach ($perf_times_for_validating as $t1) {
+                    foreach ($perf_times as $t2) {
+                        if ($t1 == $t2) {
+                            $valid = get_term_by('id', $t1, 'category')->name . ' cannot be assigned to multiple bands';
+                            return $valid;
+                        }
+                        if ($t1 > $t2) {
+                            $valid = 'Please schedule bands in order. Currently band ' . $slot . ' is scheduled before band ' . $slot_for_validating;
+                            return $valid;
+                        }
+                    }
                 }
             }
-            unset($time2);
         }
-        unset($time1);
     }
     return $valid;
 }
-add_filter('acf/validate_value/name=perf_times_1', 'APF_validate_slot', 10, 4);
+
+function APF_validate_slot_1($valid, $value, $field, $input)
+{
+    return (APF_validate_slot_number(1, $valid, $value, $field, $input));
+}
+add_filter('acf/validate_value/name=perf_times_1', 'APF_validate_slot_1', 10, 4);
+
+function APF_validate_slot_2($valid, $value, $field, $input)
+{
+    return (APF_validate_slot_number(2, $valid, $value, $field, $input));
+}
+add_filter('acf/validate_value/name=perf_times_2', 'APF_validate_slot_2', 11, 4);
+
+function APF_validate_slot_3($valid, $value, $field, $input)
+{
+    return (APF_validate_slot_number(3, $valid, $value, $field, $input));
+}
+add_filter('acf/validate_value/name=perf_times_3', 'APF_validate_slot_3', 12, 4);
+
+function APF_validate_slot_4($valid, $value, $field, $input)
+{
+    return (APF_validate_slot_number(4, $valid, $value, $field, $input));
+}
+add_filter('acf/validate_value/name=perf_times_4', 'APF_validate_slot_4', 13, 4);
 
 /*
  * Validate porch links to band that is available.
@@ -115,6 +162,8 @@ function APF_validate_linked_match($valid, $value, $field, $input)
 }
 add_filter('acf/validate_value/name=band_link_1', 'APF_validate_linked_match', 10, 4);
 add_filter('acf/validate_value/name=band_link_2', 'APF_validate_linked_match', 10, 4);
+add_filter('acf/validate_value/name=band_link_3', 'APF_validate_linked_match', 10, 4);
+add_filter('acf/validate_value/name=band_link_4', 'APF_validate_linked_match', 10, 4);
 
 /*
  * Validate when porch writes in band name then band is unregistered
@@ -132,8 +181,7 @@ function APF_validate_named_match($valid, $value, $field, $input)
     // Yes it is
     if ($porch_post) {
         $valid = $value . ' already scheduled at ' . $porch_post->post_title;
-    }    
-    // Not hosted elsewhere. Is it registered?
+    } // Not hosted elsewhere. Is it registered?
     else {
         $same_name = get_posts(array(
             'numberposts' => - 1,
@@ -149,6 +197,8 @@ function APF_validate_named_match($valid, $value, $field, $input)
 }
 add_filter('acf/validate_value/name=band_name_1', 'APF_validate_named_match', 10, 4);
 add_filter('acf/validate_value/name=band_name_2', 'APF_validate_named_match', 10, 4);
+add_filter('acf/validate_value/name=band_name_3', 'APF_validate_named_match', 10, 4);
+add_filter('acf/validate_value/name=band_name_4', 'APF_validate_named_match', 10, 4);
 
 /*
  * Confirmed cancelation of a band performance
