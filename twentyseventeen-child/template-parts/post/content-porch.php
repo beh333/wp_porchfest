@@ -10,6 +10,8 @@
  * @version 1.2
  */
 
+global $APF_porch_slots;
+
 ?>
 
 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
@@ -67,18 +69,16 @@
 		 
 		<div class='APF-listing-major-info'>
 			<div class='APF-match'><?php 
-				$all_slots = array( array( "status" => get_field('status_of_slot_1'),
-							   "perf_times" => get_field('perf_times_1'),
-							   "band_post" => get_field('band_link_1'),
-							   "band_name" => get_field('band_name_1')
-							   ),
-						    array( "status" => get_field('status_of_slot_2'),
-							   "perf_times" => get_field('perf_times_2'),
-							   "band_post" => get_field('band_link_2'),
-							   "band_name" => get_field('band_name_2')
-							   )
-						   );
-				APF_display_all_bands_for_porch( $all_slots ); ?>
+			$all_slots = array();
+			foreach($APF_porch_slots as $slot) {
+			     $all_slots[] = array(
+			         'status' => APF_get_field('status_of_slot',$slot),
+			         'perf_times' => APF_get_field('perf_times',$slot),
+			         'band_post' => APF_get_field('band_link',$slot),
+			         'band_name' => APF_get_field('band_name',$slot),
+			     );    
+			}
+			APF_display_all_bands_for_porch( $all_slots ); ?>
 			</div>
 			<div class='APF-genre'><?php the_terms( $post->ID, 'post_tag', 'Genre(s): ', ', ', ' ' ); ?></div>
 		</div>
