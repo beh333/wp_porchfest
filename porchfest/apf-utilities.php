@@ -1,7 +1,7 @@
 <?php
 
-$APF_porch_slots = array(1,2);
-$APF_max_slot = 2;
+$APF_porch_slots = array(1,2,3,4);
+$APF_max_slot = 4;
 $APF_porch_slot_key = array(
     'status_of_slot' => array(),
     'perf_times' => array(),
@@ -16,8 +16,8 @@ function APF_init_parameters() {
     global $APF_max_slot;
     global $APF_looking_term;
     
-    $APF_porch_slots = array(1,2);
-    $APF_max_slot = 2;
+    $APF_porch_slots = array(1,2,3,4);
+    $APF_max_slot = 4;
     $APF_looking_term = 47;
     $any_porches = get_posts(array(
         'numberposts' => 1,
@@ -80,6 +80,7 @@ function APF_update_field($name, $slot, $value, $post_id=0) {
 
 /*
  * Include porch and band content types in standard wp search pages
+ * And give porch queue unlimited posts per page
  */
 function search_for_porches_and_bands($wp_query)
 {
@@ -88,6 +89,10 @@ function search_for_porches_and_bands($wp_query)
             'porch',
             'band'
         )));
+    }
+    $post_type = $_GET['post_types'];
+    if ( isset( $post_type ) && ($post_type=='porch') ) {
+        set_query_var('posts_per_page',999);
     }
 }
 add_action('pre_get_posts', 'search_for_porches_and_bands');
