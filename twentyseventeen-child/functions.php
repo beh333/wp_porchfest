@@ -99,7 +99,7 @@ wp_reset_postdata();
             echo $slot['band_name'] . ' @ ';
         }
     } else {
-        echo 'Slot status error @ ';
+        return;
     }
     if ($slot['status'] != 'NA') {
         ?><?php APF_display_porch_times( $slot['perf_times'] ); ?><?php
