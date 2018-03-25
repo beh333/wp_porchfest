@@ -104,6 +104,10 @@
 		?>
 	</div><!-- .entry-content -->
 
-	<div class='APF-listing-footer'><?php twentyseventeen_entry_footer(); ?></div>
+	<?php
+	if ( is_single() ) {
+		twentyseventeen_entry_footer();
+	}
+	?>
 
 </article><!-- #post-## -->
