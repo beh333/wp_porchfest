@@ -38,19 +38,32 @@
 
 }
 
-.APF-listing-slot {
-	display: block;
-}
-
 .APF-listing-minor-info {
 	display: inline-block;
-        width: 37%;
-	text-align: right;
+	width: 37%;
 	vertical-align: top;
+}
 
+.APF-listing-slot {
+	display: block;
 }
 
 .APF-listing-footer {
 
 }
 
+div.acf-map h2, div.acf-map h3, div.acf-map h4 {
+	font-size: large;
+}
+
+div.acf-map .entry-title a {
+	margin-left: 0;
+}
+
+div.acf-map div.APF-listing-major-info {
+	width: 100%;
+}
+
+div.acf-map div.APF-listing-minor-info {
+	display: none;
+}
