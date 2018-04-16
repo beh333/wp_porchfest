@@ -43,4 +43,16 @@
 		<?php the_excerpt(); ?>
 	</div><!-- .entry-summary -->
 
+	<?php
+		// Author bio.
+		if ( is_single() && get_the_author_meta( 'description' ) ) :
+			get_template_part( 'author-bio' );
+		endif;
+	?>
+
+	<footer class="entry-footer">
+		<?php twentyseventeen_comments(); ?>
+		<?php edit_post_link( __( 'Edit', 'twentyseventeen' ), '<span class="edit-link">', '</span>' ); ?>
+	</footer><!-- .entry-footer -->
+	
 </article><!-- #post-## -->

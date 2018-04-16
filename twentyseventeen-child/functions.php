@@ -1,4 +1,31 @@
 <?php
+
+if ( ! function_exists( 'twentyseventeen_comments' ) ) :
+/**
+ * Adapted from twentyfifteen_entry_meta
+ */
+function twentyseventeen_comments() {
+    
+    if ( 'post' == get_post_type() ) {
+        if ( is_singular() || is_multi_author() ) {
+            printf( '<span class="byline"><span class="author vcard"><span class="screen-reader-text">%1$s </span><a class="url fn n" href="%2$s">%3$s</a></span></span>',
+                _x( 'Author', 'Used before post author name.', 'twentyfifteen' ),
+                esc_url( get_author_posts_url( get_the_author_meta( 'ID' ) ) ),
+                get_the_author()
+                );
+        }    
+    }
+    
+    if ( ! is_single() && ! post_password_required() && ( comments_open() || get_comments_number() ) ) {
+        echo '<span class="comments-link">';
+        /* translators: %s: post title */
+        comments_popup_link( sprintf( __( 'Leave a comment<span class="screen-reader-text"> on %s</span>', 'twentyfifteen' ), get_the_title() ) );
+        echo '</span>';
+    }
+}
+endif;
+
+
 //add_action('acf/render_field_settings/type=text', 'add_readonly_and_disabled_to_text_field');
 
 function add_readonly_and_disabled_to_text_field($field)
@@ -76,7 +103,6 @@ function APF_display_porch_times($terms)
 function APF_display_one_band_for_porch($slot)
 {
     global $post;
-
     if ($slot['status'] == 'NA') {
         return;
     } elseif ($slot['status'] == 'Looking for a band') {
