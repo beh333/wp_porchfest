@@ -20,12 +20,9 @@ if ( isset( $post_type ) && locate_template( 'search-' . $post_type . '.php' ) )
     get_template_part( 'search', $post_type );
     
     // and then exit out
-    exit;
+    exit();
 }
-?>
 
-<!-- default search results here -->
-<?php 
 get_header(); ?>
 
 <div class="wrap">
