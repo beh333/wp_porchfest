@@ -80,7 +80,7 @@ function APF_update_field($name, $slot, $value, $post_id=0) {
 
 /*
  * Include porch and band content types in standard wp search pages
- * And give porch queue unlimited posts per page
+ * And give unlimited posts per page for map and table views
  */
 function search_for_porches_and_bands($wp_query)
 {
@@ -90,8 +90,8 @@ function search_for_porches_and_bands($wp_query)
             'band'
         )));
     }
-    $post_type = $_GET['post_types'];
-    if ( isset( $post_type ) && ($post_type=='porch') ) {
+    $view_type = $_GET['view'];
+    if ( isset( $view_type ) && (($view_type=='map') || ($view_type=='table')) ) {
         set_query_var('posts_per_page',999);
     }
 }
