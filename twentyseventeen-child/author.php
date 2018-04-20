@@ -14,14 +14,12 @@ get_header(); ?>
 
 <div class="wrap">
 
-	<?php if ( have_posts() ) : ?>
-		<header class="page-header">
-			<?php
-				the_archive_title( '<h1 class="page-title">', '</h1>' );
-				the_archive_description( '<div class="taxonomy-description">', '</div>' );
-			?>
-		</header><!-- .page-header -->
-	<?php endif; ?>
+	<header class="page-header">
+		<?php
+			the_archive_title( '<h1 class="page-title">', '</h1>' );
+			the_archive_description( '<div class="taxonomy-description">', '</div>' );
+		?>
+	</header><!-- .page-header -->
 
 	<div id="primary" class="content-area">
 		<main id="main" class="site-main" role="main">
@@ -49,23 +47,7 @@ get_header(); ?>
 
 		else :
 
-			if ( is_user_logged_in() ):
-
-			    global $current_user;
- 			    wp_get_current_user();
-			    $author_query = array('posts_per_page' => '-1','author' => $current_user->ID);
-			    $author_posts = new WP_Query($author_query);
-			    while($author_posts->have_posts()) : $author_posts->the_post();
-			    ?>
-			        <a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>       
-			    <?php           
-			    endwhile;
-
-			else :
-
-			    get_template_part( 'template-parts/post/content', 'none' );
-
-			endif;
+		    get_template_part( 'template-parts/post/content', 'none' );
 			
 		endif; ?>
 
