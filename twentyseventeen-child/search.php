@@ -17,6 +17,7 @@ get_header(); ?>
 	<header class="page-header">
 		<?php if ( have_posts() ) : ?>
 			<h1 class="page-title"><?php printf( __( 'Search Results for: %s', 'twentyseventeen' ), '<span>' . get_search_query() . '</span>' ); ?></h1>
+			<?php APF_view_tabs(); ?>
 		<?php else : ?>
 			<h1 class="page-title"><?php _e( 'Nothing Found', 'twentyseventeen' ); ?></h1>
 		<?php endif; ?>

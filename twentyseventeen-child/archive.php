@@ -10,6 +10,8 @@
  * @version 1.0
  */
 
+global $wp_query;
+
 get_header(); ?>
 
 <div class="wrap">
@@ -19,10 +21,11 @@ get_header(); ?>
 			<?php
 				the_archive_title( '<h1 class="page-title">', '</h1>' );
 				the_archive_description( '<div class="taxonomy-description">', '</div>' );
+				APF_view_tabs();
 			?>
 		</header><!-- .page-header -->
 	<?php endif; ?>
-
+	
 	<div id="primary" class="content-area">
 		<main id="main" class="site-main" role="main">
 		<?php

@@ -67,3 +67,13 @@ div.acf-map div.APF-listing-major-info {
 div.acf-map div.APF-listing-minor-info {
 	display: none;
 }
+
+div.APF-view-tabs input {
+	display: inline;
+}
+
+div.APF-view-tabs input {
+	background-color: #c79633;
+	padding: 0.2em;
+	width: 5em;
+}

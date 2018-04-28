@@ -1,19 +1,49 @@
 <?php
 
+function APF_view_tabs()
+{
+    ?>
+<div class="APF-view-tabs">
+	<input type="button" onclick="location.href='<?php echo add_query_arg('view', 'excerpt');?>';" value="List" /> 
+	<input type="button" onclick="location.href='<?php echo add_query_arg('view', 'map');?>';" value="Map" />  
+    <?php
+    if (current_user_can('editor') || current_user_can('manager') || current_user_can('administrator')) {
+        // stuff here for admins or editors
+        ?><input type="button"
+		onclick="location.href='<?php echo add_query_arg('view', 'table');?>';"
+		value="Table" /> <?php
+    }
+    ?>
+    </div><?php
+}
+
+function APF_tab_active_status()
+{
+    return;
+}
+
 /*
  * This version of Wordpress "the loop" is shared by index, archive, and search.php
  * All of them look for "view" type in $_GET: map, table, or excerpt (default)
  */
-function APF_the_loop() {
+function APF_the_loop()
+{
+    // global $APF_view_type;
+    
     // get the view type from the URL string
+    
+    // $old_view = $APF_view_type;
     $view_type = $_GET['view'];
     if (isset($view_type)) {
-        $view_type = strtolower($view_type);
+        $APF_view_type = strtolower($view_type);
+    } else { // if (!isset($APF_view_type)) {
+        $APF_view_type = 'excerpt';
     }
-    if ('map' == $view_type) {
+    
+    if ('map' == $APF_view_type) {
         include_once 'google-map-helpers.php';
         ?><div class="acf-map"><?php
-    } elseif ('table' == $view_type) {
+    } elseif ('table' == $APF_view_type) {
         ?><div class="APF-table"><?php
         $fields = array(
             'Title' => array(
@@ -34,13 +64,13 @@ function APF_the_loop() {
         }
         echo '</tr>';
     } else {
-        $view_type = 'excerpt';
+        $APF_view_type = 'excerpt';
     }
     
     /* Start the Loop */
     while (have_posts()) {
         the_post();
-        if ('table' == $view_type) {
+        if ('table' == $APF_view_type) {
             echo '<tr>';
             foreach ($fields as $key => $func_to_get_value) {
                 if (1 == count($func_to_get_value)) {
@@ -52,19 +82,23 @@ function APF_the_loop() {
             }
             echo '</tr>';
         } else {
-            get_template_part('template-parts/post/content', $view_type);
+            get_template_part('template-parts/post/content', $APF_view_type);
         }
     } // End of the loop.
     
-    if ('map' == $view_type) {
+    if ('map' == $APF_view_type) {
         echo '</div>';
-    } elseif ('table' == $view_type) {
+    } elseif ('table' == $APF_view_type) {
         echo '</table></div>';
     }
     
     the_posts_pagination(array(
-        'prev_text' => twentyseventeen_get_svg(array('icon' => 'arrow-left')) . '<span class="screen-reader-text">' . __('Previous page', 'twentyseventeen') . '</span>',
-        'next_text' => '<span class="screen-reader-text">' . __('Next page', 'twentyseventeen') . '</span>' . twentyseventeen_get_svg(array('icon' => 'arrow-right')),
+        'prev_text' => twentyseventeen_get_svg(array(
+            'icon' => 'arrow-left'
+        )) . '<span class="screen-reader-text">' . __('Previous page', 'twentyseventeen') . '</span>',
+        'next_text' => '<span class="screen-reader-text">' . __('Next page', 'twentyseventeen') . '</span>' . twentyseventeen_get_svg(array(
+            'icon' => 'arrow-right'
+        )),
         'before_page_number' => '<span class="meta-nav screen-reader-text">' . __('Page', 'twentyseventeen') . ' </span>'
     ));
 }
