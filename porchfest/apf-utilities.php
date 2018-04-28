@@ -1,5 +1,6 @@
 <?php
 
+//global $APF_view_type;
 $APF_porch_slots = array(1,2,3,4);
 $APF_max_slot = 4;
 $APF_porch_slot_key = array(
@@ -11,11 +12,19 @@ $APF_porch_slot_key = array(
 $APF_looking_term = 47;
 
 function APF_init_parameters() {
+    //global $APF_view_type;
     global $APF_porch_slots;
     global $APF_porch_slot_key;
     global $APF_max_slot;
     global $APF_looking_term;
     
+    /*
+     * 
+     if (!isset($APF_view_type)) {
+        $APF_view_type = 'excerpt';
+    }
+     */
+ 
     $APF_porch_slots = array(1,2,3,4);
     $APF_max_slot = 4;
     $APF_looking_term = 47;

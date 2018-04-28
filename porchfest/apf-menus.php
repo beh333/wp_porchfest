@@ -23,6 +23,8 @@ function APF_my_listings_menu_item($items, $menu)
             );
             $parent_menu = 'View Listings';
             $parent_object_id = get_wp_object_id($parent_menu, 'nav_menu_item');
+        } else {
+            return $items;
         }
     }
     
@@ -37,27 +39,47 @@ function APF_my_listings_menu_item($items, $menu)
     }
     
     $menu_order = count($items) + 1;
-    
-    // Create objects containing all (and only) those properties from WP_Post
-    // used by WP to create a menu item
-    $items[] = (object) array(
-        'ID' => $menu_order + 1000000000, // ID that WP won't use
-        'title' => $subitem['text'],
-        'url' => $subitem['url'],
-        'menu_item_parent' => $parent_menu_item_id,
-        'menu_order' => $menu_order,
-        // These are not necessary, but PHP warning will be thrown if undefined
-        'type' => '',
-        'object' => '',
-        'object_id' => '',
-        'db_id' => '',
-        'classes' => ''
-    );
+    $items[] = (object) _custom_nav_menu_item('My Listings', $url, $menu_order, $parent_menu_item_id);
     $menu_order ++;
     return $items;
 }
 
 add_filter('wp_get_nav_menu_items', 'APF_my_listings_menu_item', 10, 2);
+
+/**
+ * Simple helper function for make menu item objects
+ *
+ * @param $title -
+ *            menu item title
+ * @param $url -
+ *            menu item url
+ * @param $order -
+ *            where the item should appear in the menu
+ * @param int $parent
+ *            - the item's parent item
+ * @return \stdClass
+ */
+function _custom_nav_menu_item($title, $url, $order, $parent = 0)
+{
+    $item = new stdClass();
+    $item->ID = 1000000 + $order + $parent;
+    $item->db_id = $item->ID;
+    $item->title = $title;
+    $item->url = $url;
+    $item->menu_order = $order;
+    $item->menu_item_parent = $parent;
+    $item->type = '';
+    $item->object = '';
+    $item->object_id = '';
+    $item->classes = array();
+    $item->target = '';
+    $item->attr_title = '';
+    $item->description = '';
+    $item->xfn = '';
+    $item->status = '';
+    return $item;
+}
+
 
 /**
  * Returns the WordPress ID of any post type or page by its title or name
