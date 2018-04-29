@@ -26,5 +26,5 @@ if ('porch' == $post_type) {
 ?>
 <div class="marker" data-lat="<?php echo $location['lat']; ?>"
 		data-lng="<?php echo $location['lng']; ?>">
-	<?php get_template_part( 'template-parts/post/content', 'infowindow' ); ?>
+	<?php get_template_part( 'template-parts/post/content', 'excerpt' ); ?>
 </div>

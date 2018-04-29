@@ -1,5 +1,45 @@
 <?php
 
+function APF_major_listing_info() {
+global $post;
+global $APF_porch_slots;
+?>
+		<div class='APF-listing-major-info'>
+			<div class='APF-match'><?php
+			if ('band'== get_post_type()) {
+                // Custom field 'porch_link' gives us host of band without need to query
+                $porch_post = get_field('porch_link');
+                if ($porch_post) {
+                    $post = $porch_post;
+                    setup_postdata($post);
+                    ?><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a> @ <?php
+                    wp_reset_postdata();
+                    $perf_times = get_the_term_list($post->ID, 'category', '', ', ', ' ');
+                    if ($perf_times) {
+                        ?><?php echo $perf_times; ?><?php
+                    } else {
+                        ?> Time TBA <?php
+                    }
+                } else {
+                    echo 'Looking for a porch';
+                }
+			} elseif ('porch' == get_post_type()) {
+			    $all_slots = array();
+			    foreach($APF_porch_slots as $slot) {
+			        $all_slots[] = array(
+			            'status' => APF_get_field('status_of_slot',$slot),
+			            'perf_times' => APF_get_field('perf_times',$slot),
+			            'band_post' => APF_get_field('band_link',$slot),
+			            'band_name' => APF_get_field('band_name',$slot),
+			        );
+			    }
+			    APF_display_all_bands_for_porch( $all_slots );
+			} ?>
+            </div>
+			<div class='APF-genre'><?php the_terms( $post->ID, 'post_tag', 'Genre(s): ', ', ', ' ' ); ?></div>
+		</div><?php 
+}
+
 function APF_view_tabs()
 {
     ?>

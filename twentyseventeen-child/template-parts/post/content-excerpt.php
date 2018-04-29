@@ -40,7 +40,17 @@
 	</header><!-- .entry-header -->
 
 	<div class="entry-summary">
-		<?php the_excerpt(); ?>
+		<div class="APF-listing-description"><?php the_excerpt(); ?></div><?php 
+		APF_major_listing_info(); 
+		if ('porch'==get_post_type()) {
+		    $size = 'capacity';
+		} else {
+		  $size = 'size';
+		    } ?>	
+				<div class='APF-listing-minor-info'>
+			<div class='APF-rain'><?php the_terms( $post->ID, 'raindate', 'Rain date: '); ?></div>
+			<div class='APF-misc'><?php $field = get_field_object($size);  echo $field['label'] . ': ' . $field['value']; ?></div>
+		</div>
 	</div><!-- .entry-summary -->
 
 	<?php

@@ -77,3 +77,46 @@ div.APF-view-tabs input {
 	padding: 0.2em;
 	width: 5em;
 }
+
+.entry-footer {
+	border-bottom: none;
+	border-top: none;
+	margin-top: 0.2em;
+	padding: 0.2em 0;
+}
+
+.entry-footer span.comments-link a {
+	padding: 0.33em 1.6em;
+	color: #444;
+	background-color: #ddd;
+	font-family: "Libre Franklin", "Helvetica Neue", helvetica, arial, sans-serif;
+	font-size: 0.87rem;
+	font-weight: 800;
+}
+
+.entry-footer .edit-link a.post-edit-link {
+	padding: 0.33em 1.6em;
+	color: #444;
+	background-color: #ddd;
+}
+
+div.acf-map div.APF-listing-description {
+	display: none;
+}
+
+div.acf-map div.APF-listing-minor-info {
+	display: none;
+}
+
+div.acf-map .entry-footer span.comments-link a {
+	padding: 0;
+	color: #444;
+	background-color: #ddd;
+	font-family: "Libre Franklin", "Helvetica Neue", helvetica, arial, sans-serif;
+	font-size: 0.72rem;
+	font-weight: 600;
+}
+
+div.acf-map .entry-footer .edit-link a.post-edit-link {
+	display: none;
+}
