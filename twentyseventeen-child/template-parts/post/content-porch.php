@@ -60,11 +60,8 @@ global $APF_porch_slots;
 	<div class="entry-content">
 		<div class='APF-listing-description'>
 			<?php
-
-			the_content( sprintf(
-				__( 'Continue reading<span class="screen-reader-text"> "%s"</span>', 'twentyseventeen' ),
-				get_the_title()
-			) ); ?>
+            the_field('description');
+            ?>
 		</div>
 		 
 		<div class='APF-listing-major-info'>
