@@ -100,7 +100,7 @@ function search_for_porches_and_bands($wp_query)
         )));
     }
     $view_type = $_GET['view'];
-    if ( isset( $view_type ) && (($view_type=='map') || ($view_type=='table')) ) {
+    if ( isset( $view_type ) && (($view_type=='map') || ($view_type=='table') || ($view_type=='pins')) ) {
         set_query_var('posts_per_page',999);
     }
 }
