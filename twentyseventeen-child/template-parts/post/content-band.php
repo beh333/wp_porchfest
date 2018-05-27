@@ -64,28 +64,7 @@
 ?>
 		</div>
 
-		<div class='APF-listing-major-info'>
-			<div class='APF-match'><?php
-                // Custom field 'porch_link' gives us host of band without need to query
-                $porch_post = get_field('porch_link');
-                if ($porch_post) {
-                    $post = $porch_post;
-                    setup_postdata($post);
-                    ?><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a> @ <?php
-                    wp_reset_postdata();
-                    $perf_times = get_the_term_list($post->ID, 'category', '', ', ', ' ');
-                    if ($perf_times) {
-                        ?><?php echo $perf_times; ?><?php
-                    } else {
-                        ?> Time TBA <?php
-                    }
-                } else {
-                    echo 'Looking for a porch';
-                } ?>
-            </div>
-
-			<div class='APF-genre'><?php the_terms( $post->ID, 'post_tag', 'Genre(s): ', ', ', ' ' ); ?></div>
-		</div>
+		<?php APF_major_listing_info(); ?>
 
 		<div class='APF-listing-minor-info'>
 			<div class='APF-rain'><?php the_terms( $post->ID, 'raindate', 'Rain date: '); ?></div>

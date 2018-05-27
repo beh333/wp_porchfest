@@ -63,22 +63,8 @@ global $APF_porch_slots;
             the_field('description');
             ?>
 		</div>
-		 
-		<div class='APF-listing-major-info'>
-			<div class='APF-match'><?php 
-			$all_slots = array();
-			foreach($APF_porch_slots as $slot) {
-			     $all_slots[] = array(
-			         'status' => APF_get_field('status_of_slot',$slot),
-			         'perf_times' => APF_get_field('perf_times',$slot),
-			         'band_post' => APF_get_field('band_link',$slot),
-			         'band_name' => APF_get_field('band_name',$slot),
-			     );    
-			}
-			APF_display_all_bands_for_porch( $all_slots ); ?>
-			</div>
-			<div class='APF-genre'><?php the_terms( $post->ID, 'post_tag', 'Genre(s): ', ', ', ' ' ); ?></div>
-		</div>
+
+		<?php APF_major_listing_info(); ?> 
 
 		<div class='APF-listing-minor-info'>
 			<div class='APF-rain'><?php the_terms( $post->ID, 'raindate', 'Rain date: '); ?></div>

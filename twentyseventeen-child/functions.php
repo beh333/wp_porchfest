@@ -83,18 +83,41 @@ function APF_the_loop()
     if ('map' == $APF_view_type) {
         include_once 'google-map-helpers.php';
         ?><div class="acf-map"><?php
+    } elseif ('pins' == $APF_view_type ) {
+        ?><div class="APF-table"><?php
+        $fields = array(
+            'Title' => array(
+                'the_title'
+            ),
+            'Lat' => array(
+                'APF_the_listing_loc',
+                'lat'
+            ),
+            'Lng' => array(
+                'APF_the_listing_loc',
+                'lng'
+            ),
+            'Performance' => array(
+                'APF_major_listing_info'
+            )
+        );
+        echo '<table><tr>';
+        foreach ($fields as $key => $func_to_get_value) {
+            echo '<th>' . $key . '</th>';
+        }
+        echo '</tr>';
     } elseif ('table' == $APF_view_type) {
         ?><div class="APF-table"><?php
         $fields = array(
             'Title' => array(
-                'get_the_title'
+                'the_title'
             ),
             'Author' => array(
-                'get_the_author_meta',
+                'the_author_meta',
                 'display_name'
             ),
             'Email' => array(
-                'get_the_author_meta',
+                'the_author_meta',
                 'user_email'
             )
         );
@@ -110,15 +133,16 @@ function APF_the_loop()
     /* Start the Loop */
     while (have_posts()) {
         the_post();
-        if ('table' == $APF_view_type) {
+        if (('table' == $APF_view_type) || ('pins' == $APF_view_type)) {
             echo '<tr>';
             foreach ($fields as $key => $func_to_get_value) {
+                ?><td><?php 
                 if (1 == count($func_to_get_value)) {
-                    $value = call_user_func($func_to_get_value[0]);
+                    call_user_func($func_to_get_value[0]);
                 } elseif (2 == count($func_to_get_value)) {
-                    $value = call_user_func($func_to_get_value[0], $func_to_get_value[1]);
+                    call_user_func($func_to_get_value[0], $func_to_get_value[1]);
                 }
-                echo '<td>' . $value . '</td>';
+                ?></td><?php 
             }
             echo '</tr>';
         } else {
@@ -128,7 +152,7 @@ function APF_the_loop()
     
     if ('map' == $APF_view_type) {
         echo '</div>';
-    } elseif ('table' == $APF_view_type) {
+    } elseif (('table' == $APF_view_type) || ('pins' == $APF_view_type)) {
         echo '</table></div>';
     }
     
@@ -141,6 +165,22 @@ function APF_the_loop()
         )),
         'before_page_number' => '<span class="meta-nav screen-reader-text">' . __('Page', 'twentyseventeen') . ' </span>'
     ));
+}
+
+function APF_the_listing_loc($coord_type) {
+    $post_type = get_post_type();
+    if ('porch' == $post_type) {
+        $location = get_field('map_marker');
+    } elseif ('band' == $post_type) {
+        $host_id = get_field('porch_link');
+        $location = get_field('map_marker',$host_id);
+    }
+    if (!$location) {
+        return(False);
+    } else {
+        echo $location[$coord_type];
+        return($location[$coord_type]);
+    }
 }
 
 if (! function_exists('twentyseventeen_comments')) :
