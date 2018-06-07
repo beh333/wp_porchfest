@@ -1,53 +1,66 @@
 <?php
 
-//global $APF_view_type;
-$APF_porch_slots = array(1,2,3,4);
+// global $APF_view_type;
+$APF_porch_slots = array(
+    1,
+    2,
+    3,
+    4
+);
 $APF_max_slot = 4;
 $APF_porch_slot_key = array(
     'status_of_slot' => array(),
     'perf_times' => array(),
     'band_name' => array(),
-    'band_link' => array(),
+    'band_link' => array()
 );
-$APF_looking_term = 47;
+$APF_looking_term = 42;
+$APF_scheduled_term = 43;
 
-function APF_init_parameters() {
-    //global $APF_view_type;
+function APF_init_parameters()
+{
+    // global $APF_view_type;
     global $APF_porch_slots;
     global $APF_porch_slot_key;
     global $APF_max_slot;
     global $APF_looking_term;
+    global $APF_scheduled_term;
     
     /*
-     * 
-     if (!isset($APF_view_type)) {
-        $APF_view_type = 'excerpt';
-    }
+     *
+     * if (!isset($APF_view_type)) {
+     * $APF_view_type = 'excerpt';
+     * }
      */
- 
-    $APF_porch_slots = array(1,2,3,4);
+    
+    $APF_porch_slots = array(
+        1,
+        2,
+        3,
+        4
+    );
     $APF_max_slot = 4;
-    $APF_looking_term = 47;
+    $APF_looking_term = 42;
+    $APF_scheduled_term = 43;
     $any_porches = get_posts(array(
         'numberposts' => 1,
         'post_type' => 'porch',
-        'post_status' => 'publish',
+        'post_status' => 'publish'
     ));
-    if(!empty($any_porches)) {
+    if (! empty($any_porches)) {
         $any_porch = $any_porches[0]->ID;
     } else {
         $any_porch = 0;
     }
-    foreach($APF_porch_slots as $slot) {
-        $field_key = acf_get_field_key('status_of_slot_'.$slot, $any_porch);
+    foreach ($APF_porch_slots as $slot) {
+        $field_key = acf_get_field_key('status_of_slot_' . $slot, $any_porch);
         $APF_porch_slot_key['status_of_slot'][$slot] = $field_key;
-        $field_key = acf_get_field_key('perf_times_'.$slot, $any_porch);
+        $field_key = acf_get_field_key('perf_times_' . $slot, $any_porch);
         $APF_porch_slot_key['perf_times'][$slot] = $field_key;
-        $field_key = acf_get_field_key('band_name_'.$slot, $any_porch);
+        $field_key = acf_get_field_key('band_name_' . $slot, $any_porch);
         $APF_porch_slot_key['band_name'][$slot] = $field_key;
-        $field_key = acf_get_field_key('band_link_'.$slot, $any_porch);
+        $field_key = acf_get_field_key('band_link_' . $slot, $any_porch);
         $APF_porch_slot_key['band_link'][$slot] = $field_key;
-        
     }
 }
 add_action('init', 'APF_init_parameters');
@@ -56,12 +69,13 @@ add_action('init', 'APF_init_parameters');
  * Get field value from a porch slot
  * Argument $post_id is optional
  */
-function APF_get_field($name, $slot, $post_id=0) {
+function APF_get_field($name, $slot, $post_id = 0)
+{
     global $APF_porch_slots;
-    if(in_array($slot, $APF_porch_slots)) {
+    if (in_array($slot, $APF_porch_slots)) {
         $field_name = $name . '_' . $slot;
-        if($post_id > 0) {
-            return get_field($field_name,$post_id);
+        if ($post_id > 0) {
+            return get_field($field_name, $post_id);
         } else {
             return get_field($field_name);
         }
@@ -73,11 +87,12 @@ function APF_get_field($name, $slot, $post_id=0) {
  * Update field value in a porch slot
  * Argument $post_id is optional
  */
-function APF_update_field($name, $slot, $value, $post_id=0) {
+function APF_update_field($name, $slot, $value, $post_id = 0)
+{
     global $APF_porch_slots;
-    if(in_array($slot, $APF_porch_slots)) {
+    if (in_array($slot, $APF_porch_slots)) {
         $field_name = $name . '_' . $slot;
-        if($post_id > 0) {
+        if ($post_id > 0) {
             return update_field($field_name, $value, $post_id);
         } else {
             return update_field($field_name, $value);
@@ -86,22 +101,24 @@ function APF_update_field($name, $slot, $value, $post_id=0) {
     return False;
 }
 
-
 /*
  * Include porch and band content types in standard wp search pages
  * And give unlimited posts per page for map and table views
  */
-function search_for_porches_and_bands($wp_query)
+function search_for_porches_and_bands($query)
 {
-    if (is_search() || is_tag() || is_category() || is_author()) {
+    if (is_search() || is_tag() || is_author() || is_category()) {
         set_query_var('post_type', get_query_var('post_type', array(
             'porch',
             'band'
         )));
+        // set_query_var('status', array('scheduled'));
     }
-    $view_type = $_GET['view'];
-    if ( isset( $view_type ) && (($view_type=='map') || ($view_type=='table') || ($view_type=='pins')) ) {
-        set_query_var('posts_per_page',999);
+    if (isset($_GET['view'])) {
+        $view_type = $_GET['view'];
+        if (($view_type == 'map') || ($view_type == 'table') || ($view_type == 'pins')) {
+            set_query_var('posts_per_page', 999);
+        }
     }
 }
 add_action('pre_get_posts', 'search_for_porches_and_bands');
@@ -136,7 +153,7 @@ function APF_shorten_address($address)
     }
     if ($shortened) {
         return $shortened;
-    }    
+    }
     return $address;
 }
 
@@ -244,14 +261,14 @@ function acf_get_field_key($field_name, $post_id)
     ));
     foreach ($field_groups as $field_group)
         $field_groups_ids[] = $field_group['ID'];
-        
-        // Check if field is part of one of the field groups
-        // Return the first one.
-        foreach ($acf_fields as $acf_field) {
-            if (in_array($acf_field->post_parent, $field_groups_ids))
-                return $acf_field->post_name;
-        }
-        return false;
+    
+    // Check if field is part of one of the field groups
+    // Return the first one.
+    foreach ($acf_fields as $acf_field) {
+        if (in_array($acf_field->post_parent, $field_groups_ids))
+            return $acf_field->post_name;
+    }
+    return false;
 }
 
 
