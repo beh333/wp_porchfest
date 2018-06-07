@@ -1,51 +1,73 @@
 <?php
 
-function APF_major_listing_info() {
-global $post;
-global $APF_porch_slots;
-?>
-		<div class='APF-listing-major-info'>
-			<div class='APF-match'><?php
-			if ('band'== get_post_type()) {
-                // Custom field 'porch_link' gives us host of band without need to query
-                $porch_post = get_field('porch_link');
-                if ($porch_post) {
-                    $post = $porch_post;
-                    setup_postdata($post);
-                    ?><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a> @ <?php
-                    wp_reset_postdata();
-                    $perf_times = get_the_term_list($post->ID, 'category', '', ', ', ' ');
-                    if ($perf_times) {
-                        ?><?php echo $perf_times; ?><?php
-                    } else {
-                        ?> Time TBA <?php
-                    }
-                } else {
-                    echo 'Looking for a porch';
-                }
-			} elseif ('porch' == get_post_type()) {
-			    $all_slots = array();
-			    foreach($APF_porch_slots as $slot) {
-			        $all_slots[] = array(
-			            'status' => APF_get_field('status_of_slot',$slot),
-			            'perf_times' => APF_get_field('perf_times',$slot),
-			            'band_post' => APF_get_field('band_link',$slot),
-			            'band_name' => APF_get_field('band_name',$slot),
-			        );
-			    }
-			    APF_display_all_bands_for_porch( $all_slots );
-			} ?>
+function APF_major_listing_info()
+{
+    global $post;
+    global $APF_porch_slots;
+    ?>
+<div class='APF-listing-major-info'>
+	<div class='APF-match'><?php
+    if ('band' == get_post_type()) {
+        // Custom field 'porch_link' gives us host of band without need to query
+        $porch_post = get_field('porch_link');
+        if ($porch_post) {
+            $post = $porch_post;
+            setup_postdata($post);
+            ?><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a> @ <?php
+            wp_reset_postdata();
+            $perf_times = APF_get_perf_times($post->ID);
+            if ($perf_times) {
+                ?><?php echo $perf_times; ?><?php
+            } else {
+                ?> Time TBA <?php
+            }
+        } else {
+            echo 'Looking for a porch';
+        }
+    } elseif ('porch' == get_post_type()) {
+        $all_slots = array();
+        foreach ($APF_porch_slots as $slot) {
+            $all_slots[] = array(
+                'status' => APF_get_field('status_of_slot', $slot),
+                'perf_times' => APF_get_field('perf_times', $slot),
+                'band_post' => APF_get_field('band_link', $slot),
+                'band_name' => APF_get_field('band_name', $slot)
+            );
+        }
+        APF_display_all_bands_for_porch($all_slots);
+    }
+    ?>
             </div>
-			<div class='APF-genre'><?php the_terms( $post->ID, 'post_tag', 'Genre(s): ', ', ', ' ' ); ?></div>
-		</div><?php 
+	<div class='APF-genre'><?php the_terms( $post->ID, 'post_tag', 'Genre(s): ', ', ', ' ' ); ?></div>
+</div><?php
+}
+
+function APF_get_perf_times($post_id)
+{
+    global $APF_scheduled_term;
+    
+    $terms = get_the_terms($post_id, 'category');
+    if ($terms && ! is_wp_error($terms)) {
+        $term_list = array();
+        foreach ($terms as $term) {
+            if ($APF_scheduled_term != $term->term_id) {
+                $term_link = get_term_link($term);
+                $term_list[] = '<a href="' . esc_url($term_link) . '">' . $term->name . '</a>';
+            }
+        }
+    }
+    return join(", ", $term_list);
 }
 
 function APF_view_tabs()
 {
     ?>
 <div class="APF-view-tabs">
-	<input type="button" onclick="location.href='<?php echo add_query_arg('view', 'excerpt');?>';" value="List" /> 
-	<input type="button" onclick="location.href='<?php echo add_query_arg('view', 'map');?>';" value="Map" />  
+	<input type="button"
+		onclick="location.href='<?php echo add_query_arg('view', 'excerpt');?>';"
+		value="List" /> <input type="button"
+		onclick="location.href='<?php echo add_query_arg('view', 'map');?>';"
+		value="Map" />  
     <?php
     if (current_user_can('editor') || current_user_can('manager') || current_user_can('administrator')) {
         // stuff here for admins or editors
@@ -73,8 +95,8 @@ function APF_the_loop()
     // get the view type from the URL string
     
     // $old_view = $APF_view_type;
-    $view_type = $_GET['view'];
-    if (isset($view_type)) {
+    if (isset($_GET['view'])) {
+        $view_type = $_GET['view'];
         $APF_view_type = strtolower($view_type);
     } else { // if (!isset($APF_view_type)) {
         $APF_view_type = 'excerpt';
@@ -83,7 +105,7 @@ function APF_the_loop()
     if ('map' == $APF_view_type) {
         include_once 'google-map-helpers.php';
         ?><div class="acf-map"><?php
-    } elseif ('pins' == $APF_view_type ) {
+    } elseif ('pins' == $APF_view_type) {
         ?><div class="APF-table"><?php
         $fields = array(
             'Title' => array(
@@ -136,13 +158,13 @@ function APF_the_loop()
         if (('table' == $APF_view_type) || ('pins' == $APF_view_type)) {
             echo '<tr>';
             foreach ($fields as $key => $func_to_get_value) {
-                ?><td><?php 
+                ?><td><?php
                 if (1 == count($func_to_get_value)) {
                     call_user_func($func_to_get_value[0]);
                 } elseif (2 == count($func_to_get_value)) {
                     call_user_func($func_to_get_value[0], $func_to_get_value[1]);
                 }
-                ?></td><?php 
+                ?></td><?php
             }
             echo '</tr>';
         } else {
@@ -167,19 +189,20 @@ function APF_the_loop()
     ));
 }
 
-function APF_the_listing_loc($coord_type) {
+function APF_the_listing_loc($coord_type)
+{
     $post_type = get_post_type();
     if ('porch' == $post_type) {
         $location = get_field('map_marker');
     } elseif ('band' == $post_type) {
         $host_id = get_field('porch_link');
-        $location = get_field('map_marker',$host_id);
+        $location = get_field('map_marker', $host_id);
     }
-    if (!$location) {
-        return(False);
+    if (! $location) {
+        return (False);
     } else {
         echo $location[$coord_type];
-        return($location[$coord_type]);
+        return ($location[$coord_type]);
     }
 }
 
