@@ -107,17 +107,25 @@ function APF_update_field($name, $slot, $value, $post_id = 0)
  */
 function search_for_porches_and_bands($query)
 {
-    if (is_search() || is_tag() || is_author() || is_category()) {
+    // do not modify queries in the admin
+    if (is_admin()) {
+        return $query;
+    }
+    
+    if (($query->is_main_query() && isset($_GET['post_types'])) || $query->is_archive() || $query->is_search() || $query->is_tag() || $query->is_author() || $query->is_category()) {
         set_query_var('post_type', get_query_var('post_type', array(
             'porch',
             'band'
         )));
-        // set_query_var('status', array('scheduled'));
-    }
-    if (isset($_GET['view'])) {
-        $view_type = $_GET['view'];
-        if (($view_type == 'map') || ($view_type == 'table') || ($view_type == 'pins')) {
-            set_query_var('posts_per_page', 999);
+        set_query_var('orderby', 'meta_value');
+        set_query_var('meta_key', 'title_for_sorting');
+        set_query_var('order', 'ASC');
+        
+        if (isset($_GET['view'])) {
+            $view_type = $_GET['view'];
+            if (($view_type == 'map') || ($view_type == 'table') || ($view_type == 'pins')) {
+                set_query_var('posts_per_page', 999);
+            }
         }
     }
 }

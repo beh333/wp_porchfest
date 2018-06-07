@@ -34,14 +34,14 @@ function APF_post_beforesaving($post_id)
     if (! $_POST['acf']) {
         return;
     }
-    //APF_initialize_status();
+    //APF_initialize_data();
     APF_update_POST_title($post_id);
     if ($_POST['post_type'] == 'porch') {
         // clear out band schedules so we don't leave orphans
         foreach ($APF_porch_slots as $slot) {
             $band_post = APF_get_field('band_link', $slot); // gets old value before $_POST
             if ($band_post) {
-                APF_schedule_band($band_post, $band_post->post_title, get_post($post_id), $terms, False);
+                APF_schedule_band($band_post, $band_post->post_title, get_post($post_id), array(), False);
             }
         }
     }
@@ -94,6 +94,7 @@ function APF_post_aftersaving($post_id)
      * BAND: Check unscheduled band and auto-schedule it if it is named by a porch
      */
     if ($this_post->post_type == 'band') {
+        update_field('title_for_sorting', $this_post->post_title, $post_id);
         // If band already scheduled on a porch then no autoscheduling
         if (get_field('porch_link')) {
             wp_set_post_terms($post_id, array(
@@ -131,18 +132,23 @@ function APF_post_aftersaving($post_id)
        */
     elseif ($this_post->post_type == 'porch') {
         
+        $address = $this_post->post_title;
+        update_field('title_for_sorting', preg_replace('/^\s*[0-9\-]*\w?\s*/', '', $address));
+        
         // Re-initialize porch slot status
         $status = APF_set_porch_status($this_post->ID);
-
+        
         // And then update porch categories based on perf_times
         $results = wp_set_post_categories($this_post->ID, array(), False);
         foreach ($APF_porch_slots as $slot) {
             $terms[$slot] = APF_get_field('perf_times', $slot, $this_post->ID);
             if (! empty($terms[$slot])) {
-                foreach ($terms[$slot] as $t) {
-                    $results = wp_set_post_categories($this_post->ID, array(
-                        $t
-                    ), True);
+                if (('Have a band' == $status[$slot]) || ('Have an unlisted band' == $status[$slot])) {
+                    foreach ($terms[$slot] as $t) {
+                        $results = wp_set_post_categories($this_post->ID, array(
+                            $t
+                        ), True);
+                    }
                 }
             } else {
                 APF_update_field('status_of_slot', $slot, 'NA');
@@ -174,11 +180,12 @@ function APF_post_aftersaving($post_id)
 }
 add_action('acf/save_post', 'APF_post_aftersaving', 20);
 
-function APF_set_porch_status($porch_id){
+function APF_set_porch_status($porch_id)
+{
     global $APF_porch_slots;
     global $APF_looking_term;
     global $APF_scheduled_term;
-
+    
     // Re-initialize porch slot status
     wp_set_post_terms($porch_id, array(), 'status', False);
     foreach ($APF_porch_slots as $slot) {
@@ -193,7 +200,7 @@ function APF_set_porch_status($porch_id){
             ), 'status', True);
         }
     }
-    return($status);
+    return ($status);
 }
 
 /*
@@ -210,7 +217,7 @@ function APF_schedule_band($band_post, $band_name, $porch_post, $terms, $looks_g
     // Adding schedule
     if ($looks_good) {
         // Only need to work if band has its own post
-        if ($band_post) {        
+        if ($band_post) {
             // Band post keeps its own record of its porch
             // So that porch_address is displayed in band edit form
             update_field('porch_link', $porch_post->ID, $band_post->ID);
@@ -227,7 +234,7 @@ function APF_schedule_band($band_post, $band_name, $porch_post, $terms, $looks_g
             }
             // to do? Set porch tags by band?
         }
-    // Otherwise $looks_good is False and we're canceling schedule
+        // Otherwise $looks_good is False and we're canceling schedule
     } else {
         if ($band_post) {
             update_field('porch_link', null, $band_post->ID);
@@ -239,9 +246,11 @@ function APF_schedule_band($band_post, $band_name, $porch_post, $terms, $looks_g
             // Find the exact porch slot for this band and unschedule it
             foreach ($APF_porch_slots as $slot) {
                 $band_link = APF_get_field('band_link', $slot, $porch_post->ID);
-                if ($band_link->ID == $band_post->ID) {
-                    APF_update_field('status_of_slot', $slot, 'Looking for a band', $porch_post->ID);
-                    APF_update_field('band_link', $slot, null, $porch_post->ID);
+                if (is_object($band_link)) {
+                    if ($band_link->ID == $band_post->ID) {
+                        APF_update_field('status_of_slot', $slot, 'Looking for a band', $porch_post->ID);
+                        APF_update_field('band_link', $slot, null, $porch_post->ID);
+                    }
                 }
             }
             // Update porch status
@@ -358,23 +367,22 @@ function APF_get_band_id_from($band_ref_method, $band_value)
     return $band_id;
 }
 
-
 function APF_initialize_status()
 {
     global $APF_looking_term;
     global $APF_scheduled_term;
     
     $all_porches = get_posts(array(
-        'numberposts' => -1,
+        'numberposts' => - 1,
         'post_type' => 'porch',
         'post_status' => 'publish'
     ));
-    foreach ($all_porches as $porch) { 
+    foreach ($all_porches as $porch) {
         APF_set_porch_status($porch->ID);
     }
     
     $all_bands = get_posts(array(
-        'numberposts' => -1,
+        'numberposts' => - 1,
         'post_type' => 'band',
         'post_status' => 'publish'
     ));
@@ -388,7 +396,41 @@ function APF_initialize_status()
                 $APF_looking_term
             ), 'status', False);
         }
-    } 
+    }
 }
 
+function APF_initialize_data()
+{
+    global $APF_porch_slots;
+    
+    $all_porches = get_posts(array(
+        'numberposts' => - 1,
+        'post_type' => 'porch',
+        'post_status' => 'publish'
+    ));
+    foreach ($all_porches as $porch) {
+        $address = $porch->post_title;
+        update_field('title_for_sorting', preg_replace('/^\s*[0-9\-]*\w?\s*/', '', $address), $porch->ID);
+        wp_set_post_categories($porch->ID, array(), False);
+        foreach ($APF_porch_slots as $slot) {
+            $status[$slot] = APF_get_field('status_of_slot', $slot, $porch->ID);
+            if (('Have a band' == $status[$slot]) || ('Have an unlisted band' == $status[$slot])) {
+                $terms[$slot] = APF_get_field('perf_times', $slot, $porch->ID);
+                foreach ($terms[$slot] as $t) {
+                    $results = wp_set_post_categories($porch->ID, array(
+                        $t
+                    ), True);
+                }
+            }
+        }
+    }
+    $all_bands = get_posts(array(
+        'numberposts' => - 1,
+        'post_type' => 'band',
+        'post_status' => 'publish'
+    ));
+    foreach ($all_bands as $band) {
+        update_field('title_for_sorting', $band->post_title, $band->ID);
+    }
+}
 ?>
