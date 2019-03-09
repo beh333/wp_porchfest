@@ -20,7 +20,7 @@
 </style>
 
 <script
-	src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAP_API_KEY"></script>
+	src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBhyEivpzqgJYnsFQIzpp9zAelI3kh6MN0"></script>
 <script type="text/javascript">
 (function($) {
 

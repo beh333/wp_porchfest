@@ -10,12 +10,15 @@
  * @version 1.2
  */
 
+// display map marker for exhibit as well
+//
+
 $post_type = get_post_type();
 if ('porch' == $post_type) {
     $location = get_field('map_marker');
-} elseif ('band' == $post_type) {
+} elseif (('band' == $post_type) || ('exhibit' == $post_type)) {
     $host_id = get_field('porch_link');
-    $location = get_field('map_marker',$host_id);
+    $location = get_field('map_marker', $host_id);
     if (!$location) {
         return;
     }

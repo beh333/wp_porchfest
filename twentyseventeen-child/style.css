@@ -12,7 +12,38 @@
  Text Domain:  twenty-seventeen-child
 */
 
+body.page-two-column:not(.archive) #primary .entry-header, body.page-two-column:not(.archive) #primary .entry-content {
+	width: 100%;
+	float: none;
+}
 
+li {
+	padding-left: 0.5em;
+	margin-top: 0.5em;
+}
+
+div.uwp-profile-nav {
+	display: none;
+}
+
+.APF-post-icon {
+	display: inline;
+	margin-right: 0.5em;
+}
+
+.entry-header .APF-entry-title {
+	display: inline;
+}
+
+.APF-post-author ul {
+	list-style-type: none;
+	font-size: 80%;
+}
+
+.APF-post-author li {
+	display: inline;
+	padding-right: 1em;
+}
 
 .APF-listing-header {
 
@@ -38,6 +69,10 @@
 
 }
 
+.APF-listing-major-info .APF-exhibit, .APF-listing-major-info .APF-genre, .APF-listing-footer {
+	margin-top: 0.6em;
+}
+
 .APF-listing-minor-info {
 	display: inline-block;
 	width: 37%;
@@ -46,10 +81,6 @@
 
 .APF-listing-slot {
 	display: block;
-}
-
-.APF-listing-footer {
-
 }
 
 div.acf-map h2, div.acf-map h3, div.acf-map h4 {

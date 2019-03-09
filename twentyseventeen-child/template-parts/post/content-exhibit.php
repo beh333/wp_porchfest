@@ -33,14 +33,30 @@ global $post
 		APF_post_title(); ?>
 	</div></header><!-- .entry-header -->
 
+	<?php if ( '' !== get_the_post_thumbnail() && ! is_single() ) : ?>
+		<div class="post-thumbnail">
+		    <a href="<?php the_permalink(); ?>">
+				<?php the_post_thumbnail( 'twentyseventeen-featured-image' ); ?>
+			</a>
+		</div><!-- .post-thumbnail -->
+	<?php endif; ?>
+
 	<div class="entry-content">
-		<?php APF_major_listing_info(); ?> 
+		<div class='APF-listing-description'>
+			<?php
+			the_content( sprintf(
+				__( 'Continue reading<span class="screen-reader-text"> "%s"</span>', 'twentyseventeen' ),
+				get_the_title()
+			) );
+?>
+		</div>
+
+		<?php APF_major_listing_info(); ?>
 
 		<div class='APF-listing-minor-info'>
 			<div class='APF-rain'><?php the_terms( $post->ID, 'raindate', 'Rain date: '); ?></div>
-			<div class='APF-misc'><?php $field = get_field_object('capacity');  echo $field['label'] . ': ' . $field['value']; ?></div>
 		</div><?php
-			
+
 		/*
 		 * Back to standard content template
 		 */

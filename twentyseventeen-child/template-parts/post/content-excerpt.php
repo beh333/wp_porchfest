@@ -11,7 +11,7 @@
  * @since 1.0
  * @version 1.2
  */
-
+global $post
 ?>
 
 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
@@ -28,29 +28,29 @@
 			<div class="entry-meta">
 				<?php twentyseventeen_edit_link(); ?>
 			</div><!-- .entry-meta -->
-		<?php endif; ?>
+		<?php endif;
+		APF_post_title();
+	?></header><!-- .entry-header -->
 
-		<?php if ( is_front_page() && ! is_home() ) {
-
-			// The excerpt is being displayed within a front page section, so it's a lower hierarchy than h2.
-			the_title( sprintf( '<h3 class="entry-title"><a href="%s" rel="bookmark">', esc_url( get_permalink() ) ), '</a></h3>' );
-		} else {
-			the_title( sprintf( '<h2 class="entry-title"><a href="%s" rel="bookmark">', esc_url( get_permalink() ) ), '</a></h2>' );
-		} ?>
-	</header><!-- .entry-header -->
 
 	<div class="entry-summary">
-		<div class="APF-listing-description"><?php the_excerpt(); ?></div><?php 
-		APF_major_listing_info(); 
-		if ('porch'==get_post_type()) {
-		    $size = 'capacity';
-		} else {
-		  $size = 'size';
-		    } ?>	
-				<div class='APF-listing-minor-info'>
-			<div class='APF-rain'><?php the_terms( $post->ID, 'raindate', 'Rain date: '); ?></div>
-			<div class='APF-misc'><?php $field = get_field_object($size);  echo $field['label'] . ': ' . $field['value']; ?></div>
-		</div>
+		<div class="APF-listing-description">
+		<?php the_excerpt(); ?></div><?php 
+		APF_major_listing_info(); ?>
+		<div class='APF-listing-minor-info'>
+    		<div class='APF-rain'><?php the_terms( $post->ID, 'raindate', 'Rain date: '); ?></div>
+    		<div class='APF-misc'><?php 
+                  $post_type = get_post_type();
+                  $size = False;
+                  if ('porch' == $post_type) {
+                      $size = 'capacity';
+                  } elseif ('band' == $post_type) {
+                      $size = 'size';
+                  }  
+                  if ($size) {
+                      $field = get_field_object($size); echo $field['label'] . ': ' . $field['value']; 
+                  }?></div><!-- APF-misc -->
+		</div><!-- APF-listing-minor-info -->
 	</div><!-- .entry-summary -->
 
 	<?php
@@ -60,9 +60,11 @@
 		endif;
 	?>
 
-	<footer class="entry-footer">
-		<?php twentyseventeen_comments(); ?>
-		<?php edit_post_link( __( 'Edit', 'twentyseventeen' ), '<span class="edit-link">', '</span>' ); ?>
-	</footer><!-- .entry-footer -->
+	<div class="APF-listing-footer">
+    	<footer class="entry-footer">
+    		<?php twentyseventeen_comments(); ?>
+    		<?php edit_post_link( __( 'Edit', 'twentyseventeen' ), '<span class="edit-link">', '</span>' ); ?>
+    	</footer><!-- .entry-footer -->
+	</div><!-- .APF-listing-footer -->
 	
 </article><!-- #post-## -->
