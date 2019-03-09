@@ -1,31 +1,30 @@
 <?php
 
 /*
- * Validate band name is unique
+ * Validate listing name is unique
  * If not unique then post is draft, and error thrown with update messages
  */
-function APF_validate_band_name($data, $postarr)
+function APF_validate_listing_name($data, $postarr)
 {
-    if ($data['post_type'] != 'band') {
-        return $data;
-    }
-    if ($postarr['ID'] != 0) {
-        $duplicate_name = get_posts(array(
-            'numberposts' => - 1,
-            'post_type' => 'band',
-            'post_status' => 'publish',
-            'name' => sanitize_title($postarr['post_title']),
-            'exclude' => array(
-                $postarr['ID']
-            )
-        ));
-        if (! empty($duplicate_name)) {
-            $data['post_status'] = 'draft';
+    if (('band' == $data['post_type']) || ('exhibit' == $data['post_type'])) {
+        if ($postarr['ID'] != 0) {
+            $duplicate_name = get_posts(array(
+                'numberposts' => - 1,
+                'post_type' => $data['post_type'],
+                'post_status' => 'publish',
+                'name' => sanitize_title($postarr['post_title']),
+                'exclude' => array(
+                    $postarr['ID']
+                )
+            ));
+            if (! empty($duplicate_name)) {
+                $data['post_status'] = 'draft';
+            }
         }
     }
     return $data;
 }
-add_filter('wp_insert_post_data', 'APF_validate_band_name', 10, 2);
+add_filter('wp_insert_post_data', 'APF_validate_listing_name', 10, 2);
 
 /*
  * Validate porch has a unique location
@@ -58,7 +57,6 @@ add_filter('acf/validate_value/name=map_marker', 'APF_validate_map_marker', 10, 
 
 /*
  * Validate porch slot times do not overlap
- * (This is done very roughly for now)
  */
 function APF_validate_slot_number($slot_for_validating, $valid, $value, $field, $input)
 {
@@ -139,36 +137,9 @@ function APF_validate_slot_4($valid, $value, $field, $input)
 add_filter('acf/validate_value/name=perf_times_4', 'APF_validate_slot_4', 13, 4);
 
 /*
- * Validate porch links to band that is available.
- *
- * Right now band link field is filtered to category 'looking for a match'
- * Which technically makes this check superfluous
- */
-function APF_validate_linked_match($valid, $value, $field, $input)
-{
-    // bail early if value is already invalid
-    if (! $valid) {
-        return $valid;
-    }
-    // Did host link to band already hosted elsewhere?
-    $band_post = get_post($value);
-    $porch_post = APF_get_band_host_by('id', $value, 'id', array(
-        $_POST['post_ID']
-    ));
-    if ($porch_post) {
-        $valid = $band_post->post_title . ' already scheduled at ' . $porch_post->post_title;
-    }
-    return $valid;
-}
-add_filter('acf/validate_value/name=band_link_1', 'APF_validate_linked_match', 10, 4);
-add_filter('acf/validate_value/name=band_link_2', 'APF_validate_linked_match', 10, 4);
-add_filter('acf/validate_value/name=band_link_3', 'APF_validate_linked_match', 10, 4);
-add_filter('acf/validate_value/name=band_link_4', 'APF_validate_linked_match', 10, 4);
-
-/*
  * Validate when porch writes in band name then band is unregistered
  */
-function APF_validate_named_match($valid, $value, $field, $input)
+function APF_validate_named_band($valid, $value, $field, $input)
 {
     // bail early if value is already invalid
     if (! $valid || ($value == '')) {
@@ -195,42 +166,74 @@ function APF_validate_named_match($valid, $value, $field, $input)
     }
     return $valid;
 }
-add_filter('acf/validate_value/name=band_name_1', 'APF_validate_named_match', 10, 4);
-add_filter('acf/validate_value/name=band_name_2', 'APF_validate_named_match', 10, 4);
-add_filter('acf/validate_value/name=band_name_3', 'APF_validate_named_match', 10, 4);
-add_filter('acf/validate_value/name=band_name_4', 'APF_validate_named_match', 10, 4);
+add_filter('acf/validate_value/name=band_name_1', 'APF_validate_named_band', 10, 4);
+add_filter('acf/validate_value/name=band_name_2', 'APF_validate_named_band', 10, 4);
+add_filter('acf/validate_value/name=band_name_3', 'APF_validate_named_band', 10, 4);
+add_filter('acf/validate_value/name=band_name_4', 'APF_validate_named_band', 10, 4);
 
 /*
- * Confirmed cancelation of a band performance
+ * Validate when porch writes in exhibit name then exhibit is unregistered
  */
-function APF_confirm_band_cancel($post_id)
+function APF_validate_named_exhibit($valid, $value, $field, $input)
 {
-    $band_post = get_post($post_id);
-    if ($band_post->post_type != 'band') {
-        return;
+    // bail early if value is already invalid
+    if (! $valid || ($value == '')) {
+        return $valid;
     }
-    $value = get_field('are_you_sure');
-    update_field('cancel', 'no');
-    update_field('are_you_sure', 'no');
-    // Cancel the performance if user is sure
-    if ($value == 'yes') {
-        $host = APF_get_band_host_by('id', $post_id, 'id', array());
-        if ($host) {
-            APF_schedule_band($band_post, $band_post->post_title, $host, array(), False); // False => Cancel
-        } // else error
+    // Is this exhibit hosted elsewhere?
+    $porch_post = APF_get_exhibit_host_by('name', $value, 'both', array(
+        $_POST['post_ID']
+    ));
+    // Yes it is
+    if ($porch_post) {
+        $valid = $value . ' already scheduled at ' . $porch_post->post_title;
+    } // Not hosted elsewhere. Is it registered?
+    else {
+        $same_name = get_posts(array(
+            'numberposts' => - 1,
+            'post_type' => 'exhibit',
+            'name' => sanitize_title($value)
+        ));
+        // Yes it is
+        if (! empty($same_name)) {
+            $valid = $value . ' already registered. Please link to their listing';
+        }
+    }
+    return $valid;
+}
+add_filter('acf/validate_value/name=exhibit_name', 'APF_validate_named_exhibit', 10, 4);
+
+/*
+ * Confirmed cancelation of a band or exhibit performance
+ */
+function APF_confirm_listing_cancel($post_id)
+{
+    $listing_post = get_post($post_id);
+    $listing_type = $listing_post->post_type;
+    if (('band' == $listing_type) || ('exhibit' == $listing_type)) {
+        $value = get_field('are_you_sure');
+        update_field('cancel', 'no');
+        update_field('are_you_sure', 'no');
+        // Cancel the performance if user is sure
+        if ($value == 'yes') {
+            $host = APF_get_listing_host_by($listing_type, 'id', $post_id, 'id', array());
+            if ($host) {
+                APF_cancel_listing($listing_type, $listing_post, $host);
+            } // else error
+        }
     }
     return;
 }
-add_action('acf/save_post', 'APF_confirm_band_cancel', 20);
+add_action('acf/save_post', 'APF_confirm_listing_cancel', 20);
 
 /*
- * Special wp admin notice for draft post => dup band name
+ * Special wp admin notice for draft post => dup listing name
  */
 function APF_admin_notice_special()
 {
     $screen = get_current_screen();
     
-    if ('band' == $screen->post_type) {
+    if (('band' == $screen->post_type) || ('exhibit' == $screen->post_type)) {
         if ('post' == $screen->base) {
             $post = get_post();
             if ($post->post_status == 'draft') {

@@ -7,15 +7,12 @@ $APF_porch_slots = array(
     3,
     4
 );
-$APF_max_slot = 4;
 $APF_porch_slot_key = array(
     'status_of_slot' => array(),
     'perf_times' => array(),
     'band_name' => array(),
     'band_link' => array()
 );
-$APF_looking_term = 42;
-$APF_scheduled_term = 43;
 
 function APF_init_parameters()
 {
@@ -23,8 +20,11 @@ function APF_init_parameters()
     global $APF_porch_slots;
     global $APF_porch_slot_key;
     global $APF_max_slot;
-    global $APF_looking_term;
-    global $APF_scheduled_term;
+    global $APF_looking_for_band;
+    global $APF_looking_for_exhibit;
+    global $APF_looking_for_porch;
+    global $APF_scheduled_performance;
+    global $APF_scheduled_exhibit;
     
     /*
      *
@@ -40,8 +40,11 @@ function APF_init_parameters()
         4
     );
     $APF_max_slot = 4;
-    $APF_looking_term = 42;
-    $APF_scheduled_term = 43;
+    $APF_looking_for_band = 55;
+    $APF_looking_for_exhibit = 56;
+    $APF_looking_for_porch = 57;
+    $APF_scheduled_performance = 43;
+    $APF_scheduled_exhibit = 58;
     $any_porches = get_posts(array(
         'numberposts' => 1,
         'post_type' => 'porch',
@@ -100,7 +103,7 @@ function APF_update_field($name, $slot, $value, $post_id = 0)
     }
     return False;
 }
-
+ 
 /*
  * Include porch and band content types in standard wp search pages
  * And give unlimited posts per page for map and table views
@@ -109,17 +112,14 @@ function search_for_porches_and_bands($query)
 {
     // do not modify queries in the admin
     if (is_admin()) {
-        return $query;
+        return;
     }
-    
-    if (($query->is_main_query() && isset($_GET['post_types'])) || $query->is_archive() || $query->is_search() || $query->is_tag() || $query->is_author() || $query->is_category()) {
-        set_query_var('post_type', get_query_var('post_type', array(
-            'porch',
-            'band'
-        )));
-        set_query_var('orderby', 'meta_value');
-        set_query_var('meta_key', 'title_for_sorting');
-        set_query_var('order', 'ASC');
+
+    if (($query->is_main_query() && isset($_GET['post_types'])) ||  $query->is_archive() || $query->is_search() ||  $query->is_tag() || $query->is_category() || $query->is_author()) {
+        $query->set('post_type', array('porch', 'band', 'exhibit'));
+        $query->set('orderby', 'meta_value');
+        $query->set('meta_key', 'title_for_sorting');
+        $query->set('order', 'ASC');
         
         if (isset($_GET['view'])) {
             $view_type = $_GET['view'];
@@ -188,22 +188,22 @@ function APF_updated_messages($messages)
     // View post link.
     $view_post_link_html = sprintf(' <a href="%1$s">%2$s</a>', esc_url($permalink), __('View listing'));
     
-    if ($post_type == 'band') {
+    if (($post_type == 'band') || ($post_type == 'exhibit')) {
         if ($post->post_status == 'draft') {
-            $messages['band'] = array(
-                1 => 'DRAFT band listing still not published',
-                4 => 'DRAFT band listing still not published',
-                6 => 'DRAFT band listing not yet published',
-                7 => 'DRAFT band listing saved.',
-                10 => 'DRAFT band draft listing updated.'
+            $messages[$post_type] = array(
+                1 => 'DRAFT ' . $post_type . ' listing still not published',
+                4 => 'DRAFT ' . $post_type . ' listing still not published',
+                6 => 'DRAFT ' . $post_type . ' listing not yet published',
+                7 => 'DRAFT ' . $post_type . ' listing saved.',
+                10 => 'DRAFT ' . $post_type . ' draft listing updated.'
             );
         } else {
-            $messages['band'] = array(
-                1 => 'Band listing updated.' . $view_post_link_html,
-                4 => 'Band listing updated.',
-                6 => 'Band listing published.' . $view_post_link_html,
-                7 => 'Band listing saved.',
-                10 => 'Band draft listing updated.' . $preview_post_link_html
+            $messages[$post_type] = array(
+                1 => ucfirst($post_type) . ' listing updated.' . $view_post_link_html,
+                4 => ucfirst($post_type) . ' listing updated.',
+                6 => ucfirst($post_type) . ' listing published.' . $view_post_link_html,
+                7 => ucfirst($post_type) . ' listing saved.',
+                10 => ucfirst($post_type) . ' draft listing updated.' . $preview_post_link_html
             );
         }
     } elseif ($post_type == 'porch') {
@@ -233,6 +233,7 @@ add_filter('acf/fields/post_object/query/name=band_link_1', 'APF_select_only_pub
 add_filter('acf/fields/post_object/query/name=band_link_2', 'APF_select_only_published', 10, 3);
 add_filter('acf/fields/post_object/query/name=band_link_3', 'APF_select_only_published', 10, 3);
 add_filter('acf/fields/post_object/query/name=band_link_4', 'APF_select_only_published', 10, 3);
+add_filter('acf/fields/post_object/query/name=exhibit_link', 'APF_select_only_published', 10, 3);
 
 /**
  * advanced custom fields
@@ -278,5 +279,3 @@ function acf_get_field_key($field_name, $post_id)
     }
     return false;
 }
-
-

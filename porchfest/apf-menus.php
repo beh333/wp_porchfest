@@ -14,7 +14,7 @@ function APF_my_listings_menu_item($items, $menu)
         return $items;
     }
     
-    if (get_current_user_id()) {
+    if (get_current_user_id()!=0) {
         $url = get_author_posts_url(get_current_user_id());
         if ($url) {
             $subitem = array(
@@ -26,25 +26,24 @@ function APF_my_listings_menu_item($items, $menu)
         } else {
             return $items;
         }
+    } else {
+        return $items;
     }
-    
+ 
     // Find the menu item ID corresponding to the given post/page object ID
     // If no post/page found, the subitems won't have any parent (will be on 1st level)
     $parent_menu_item_id = 0;
     foreach ($items as $item) {
         if ($parent_object_id == $item->object_id) {
             $parent_menu_item_id = $item->ID;
-            break;
+            $menu_order = count($items) + 1;
+            $items[] = (object) _custom_nav_menu_item('My Listings', $url, $menu_order, $parent_menu_item_id);
+            $menu_order ++;
         }
     }
-    
-    $menu_order = count($items) + 1;
-    $items[] = (object) _custom_nav_menu_item('My Listings', $url, $menu_order, $parent_menu_item_id);
-    $menu_order ++;
     return $items;
 }
-
-add_filter('wp_get_nav_menu_items', 'APF_my_listings_menu_item', 10, 2);
+// De-activated: add_filter('wp_get_nav_menu_items', 'APF_my_listings_menu_item', 10, 2);
 
 /**
  * Simple helper function for make menu item objects
