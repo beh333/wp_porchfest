@@ -117,14 +117,30 @@ function search_for_porches_and_bands($query)
 
     if (($query->is_main_query() && isset($_GET['post_types'])) ||  $query->is_archive() || $query->is_search() ||  $query->is_tag() || $query->is_category() || $query->is_author()) {
         $query->set('post_type', array('porch', 'band', 'exhibit'));
-        $query->set('orderby', 'meta_value');
-        $query->set('meta_key', 'title_for_sorting');
-        $query->set('order', 'ASC');
-        
+        $orderby = 'num';
+        if (isset($_GET['apf-orderby'])) {
+            $orderby = $_GET['apf-orderby'];
+        }
+        // Sort numerically (by custom code) or alphabetically (by cleaned post name)
+        if ('num' == $orderby) {
+            $query->set('orderby', array('meta_value_num'=>'ASC', 'post_type'=>'DESC'));
+            $query->set('meta_key', 'num_order_code');
+        } elseif ('alpha' == $orderby) {
+            $query->set('orderby', 'meta_value');
+            $query->set('meta_key', 'title_for_sorting');
+            $query->set('order', 'ASC');
+        } elseif ('new' == $orderby) {
+            $query->set('meta_key', 'marker_label');
+            $query->set('meta_value', '9999');
+        }
         if (isset($_GET['view'])) {
             $view_type = $_GET['view'];
             if (($view_type == 'map') || ($view_type == 'table') || ($view_type == 'pins')) {
                 set_query_var('posts_per_page', 999);
+                if ($view_type == 'map') {
+                    $query->set('orderby', 'post_type');
+                    $query->set('order', 'ASC');
+                }
             }
         }
     }

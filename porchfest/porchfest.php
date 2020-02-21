@@ -255,8 +255,18 @@ function APF_porch_aftersaving($post_id, $this_post)
 {
     global $APF_porch_slots;
 
+    // APF_initialize_new_fields();
     $address = $this_post->post_title;
     update_field('title_for_sorting', preg_replace('/^\s*[0-9\-]+\w?\s*/', '', $address));
+    // update_field 'marker_label'
+    $posttags = get_the_tags($post_id);
+    if ($posttags) {
+        update_field('marker_label', $posttags[0]->name, $post_id);
+        update_field('num_order_code', $posttags[0]->name, $post_id);
+    } else {
+        update_field('marker_label', '9999', $post_id);
+        update_field('num_order_code', '9999', $post_id);
+    }
     
     // Re-initialize porch status and all band-scheduling and exhibit-scheduling porch fields
     $porch_schedule = APF_set_porch_schedule($post_id);
@@ -495,6 +505,10 @@ function APF_schedule_listing($listing_type, $listing_post, $porch_post, $terms)
         // So that porch_address is displayed in listing edit form
         update_field('porch_link', $porch_post->ID, $listing_post->ID);
         update_field('porch_address', $porch_post->post_title, $listing_post->ID);
+        // Also store porch marker label with listing
+        $porch_label = get_field('marker_label', $porch_post->ID);
+        update_field('marker_label', $porch_label, $listing_post->ID);
+        
         // reset status for listing post
         if ('band' == $listing_type) {
             wp_set_post_terms($listing_post->ID, array(
@@ -514,6 +528,8 @@ function APF_schedule_listing($listing_type, $listing_post, $porch_post, $terms)
             // Set times/categories for band
             wp_set_post_categories($listing_post->ID, array(), False);
             if ($terms) {
+                // num_order_code gets marker_label as integer and start_time ID as decimal
+                update_field('num_order_code', $porch_label . '.' . strval($terms[0]), $listing_post->ID);
                 // Band terms are IDs from porch slot times. Convert to names ('12pm', '1pm' etc)
                 foreach ($terms as $t) {
                     wp_set_post_categories($listing_post->ID, array($t), True);
@@ -528,6 +544,8 @@ function APF_schedule_listing($listing_type, $listing_post, $porch_post, $terms)
         } elseif ('exhibit' == $listing_type) {
             // Exhibit 'scheduled' taxonnomy gets its assigned porch times 
             if ($terms) {
+                // num_order_code gets marker_label as integer and start_time ID as decimal
+                update_field('num_order_code', $porch_label . '.' . strval($terms[0]), $listing_post->ID);
                 wp_set_post_terms($listing_post->ID, $terms, 'scheduled', False);
             }
             // Porch 'exhibit_genre' gets all terms from exhibit 'genre'
@@ -554,6 +572,9 @@ function APF_cancel_listing($listing_type, $listing_post, $porch_post)
         // Reinitialize porch link
         update_field('porch_link', null, $listing_post->ID);
         update_field('porch_address', '', $listing_post->ID);
+        update_field('marker_label', '9999', $listing_post->ID);
+        update_field('num_order_code', '9999', $listing_post->ID);
+        
         // Set listing status to Looking for porch
         APF_set_listing_looking($listing_post->ID);
         // If band then find the exact porch slot and unschedule it
@@ -727,98 +748,51 @@ function APF_get_listing_id_from($listing_type, $listing_ref_method, $listing_va
     return $listing_id;
 }
 
-function APF_initialize_status()
+function APF_initialize_new_fields()
 {
-    global $APF_looking_for_porch;
-    global $APF_scheduled_performance;
-    global $APF_scheduled_exhibit;
-    
     $all_porches = get_posts(array(
         'numberposts' => - 1,
         'post_type' => 'porch',
         'post_status' => 'publish'
     ));
     foreach ($all_porches as $porch) {
-        APF_set_porch_schedule($porch->ID);
+        $posttags = get_the_tags($porch->ID);
+        if ($posttags) {
+            update_field('marker_label', $posttags[0]->name, $porch->ID);
+            update_field('num_order_code', $posttags[0]->name, $porch->ID);
+        } else {
+            update_field('marker_label', '9999', $porch->ID);
+            update_field('num_order_code', '9999', $porch->ID);
+        }
     }
-    
     $all_bands = get_posts(array(
         'numberposts' => - 1,
         'post_type' => 'band',
         'post_status' => 'publish'
     ));
     foreach ($all_bands as $band) {
-        if (get_field('porch_link', $band->ID)) {
-            wp_set_post_terms($band->ID, array(
-                $APF_scheduled_performance
-            ), 'status', False);
-        } else {
-            wp_set_post_terms($band->ID, array(
-                $APF_looking_for_porch
-            ), 'status', False);
+        $host_id = get_field('porch_link', $band->ID);
+        if ($host_id) {
+            $host_label = get_field('marker_label', $host_id);
+            update_field('marker_label', $host_label, $band->ID);
+            // num_order_code gets marker_label as integer and start_time ID as decimal
+            $cats = get_the_category($band->ID);
+            update_field('num_order_code', $host_label . '.' . strval($cats[0]->term_id), $band->ID);
         }
     }
-
     $all_exhibits = get_posts(array(
         'numberposts' => - 1,
         'post_type' => 'exhibit',
         'post_status' => 'publish'
     ));
     foreach ($all_exhibits as $exhibit) {
-        if (get_field('porch_link', $exhibit->ID)) {
-            wp_set_post_terms($exhibit->ID, array(
-                $APF_scheduled_exhibit
-            ), 'status', False);
-        } else {
-            wp_set_post_terms($exhibit->ID, array(
-                $APF_looking_for_porch
-            ), 'status', False);
+        $host_id = get_field('porch_link', $exhibit->ID);
+        if ($host_id) {
+            $host_label = get_field('marker_label', $host_id);
+            update_field('marker_label', $host_label, $exhibit->ID);
+            // num_order_code gets marker_label as integer but we ignore start_time for now
+            update_field('num_order_code', $host_label, $exhibit->ID);
         }
-    }
-}
-
-function APF_initialize_data()
-{
-    global $APF_porch_slots;
-    
-    $all_porches = get_posts(array(
-        'numberposts' => - 1,
-        'post_type' => 'porch',
-        'post_status' => 'publish'
-    ));
-    foreach ($all_porches as $porch) {
-        $address = $porch->post_title;
-        update_field('title_for_sorting', preg_replace('/^\s*[0-9\-]+\w?\s*/', '', $address), $porch->ID);
-        wp_set_post_categories($porch->ID, array(), False);
-        foreach ($APF_porch_slots as $slot) {
-            $status = APF_get_field('status_of_slot', $slot, $porch->ID);
-            if (('Have a band' == $status) || ('Have an unlisted band' == $status)) {
-                $terms = APF_get_field('perf_times', $slot, $porch->ID);
-                foreach ($terms as $t) {
-                    wp_set_post_categories($porch->ID, array(
-                        $t
-                    ), True);
-                }
-            }
-        }
-    }
-    
-    $all_bands = get_posts(array(
-        'numberposts' => - 1,
-        'post_type' => 'band',
-        'post_status' => 'publish'
-    ));
-    foreach ($all_bands as $band) {
-        update_field('title_for_sorting', $band->post_title, $band->ID);
-    }
-    
-    $all_exhibits = get_posts(array(
-        'numberposts' => - 1,
-        'post_type' => 'exhibit',
-        'post_status' => 'publish'
-    ));
-    foreach ($all_exhibits as $exhibit) {
-        update_field('title_for_sorting', $exhibit->post_title, $exhibit->ID);
     }
 }
 ?>
