@@ -1,5 +1,20 @@
 <?php
 
+function APF_assign_porchfester_author_func($query_args, $r){
+    $query_args['who'] = 'porchfester';
+    return $query_args;
+}
+add_filter('wp_dropdown_users_args', 'APF_assign_porchfester_author_func', 10, 2);
+
+function APF_tag_cloud_limit($args){
+    // Check if taxonomy option of the widget is set to tags
+    if ( isset($args['taxonomy']) && $args['taxonomy'] == 'post_tag' ){
+        $args['number'] = 9999; // Number of tags to show
+    }
+    return $args;
+}
+add_filter( 'widget_tag_cloud_args', 'APF_tag_cloud_limit' );
+
 function APF_remove_admin_bar() {
     if (!current_user_can('administrator')) {
         show_admin_bar(false);
@@ -43,13 +58,14 @@ function APF_post_title()
     } else {
         $title_class = 'entry_title';
     }
+    $marker_with_label = APF_marker_with_label();
     if ( is_single() ) {
-        the_title( '<h1 class="' . $title_class . '">', '</h1>' );
+        the_title( '<h1 class="' . $title_class . '">', $marker_with_label.'</h1>' );
     } elseif ( is_front_page() && is_home() ) {
         // The excerpt is being displayed within a front page section, so it's a lower hierarchy than h2.
-        the_title( sprintf( '<h3 class="' . $title_class . '"><a href="%s" rel="bookmark">', esc_url( get_permalink() ) ), '</a></h3>' );
+        the_title( sprintf( '<h3 class="' . $title_class . '"><a href="%s" rel="bookmark">', esc_url( get_permalink() ) ), '</a>'.$marker_with_label.'</h3>' );
     } else {
-        the_title( sprintf( '<h2 class="' . $title_class . '"><a href="%s" rel="bookmark">', esc_url( get_permalink() ) ), '</a></h2>' );
+        the_title( sprintf( '<h2 class="' . $title_class . '"><a href="%s" rel="bookmark">', esc_url( get_permalink() ) ), '</a>'.$marker_with_label.'</h2>' );
     }
     if ($image_url) {
         if( current_user_can('editor') ||
@@ -81,6 +97,16 @@ function APF_listing_icon($listing_type)
     </div><!-- .APF-post-icon --><?php 
     }
     return $image_url;
+}
+
+function APF_marker_with_label()
+{
+    $marker_label = get_field('marker_label');
+    if (($marker_label == '') || ($marker_label == '9999')) {
+        return '<div class="APF-not-printed">New</div>';
+    } else {
+        return '<div class="APF-marker-label">'.$marker_label.'</div>';
+    }   
 }
 
 function APF_major_listing_info()
@@ -191,19 +217,20 @@ function APF_view_tabs()
     if (!APF_blog_page()) {
         ?>
     	<div class="APF-view-tabs">
-    	<input type="button"
-    		onclick="location.href='<?php echo add_query_arg('view', 'excerpt');?>';"
-    		value="List" /> <input type="button"
-    		onclick="location.href='<?php echo add_query_arg('view', 'map');?>';"
-    		value="Map" />  
-        <?php
-        if (current_user_can('editor') || current_user_can('manager') || current_user_can('administrator')) {
-            // stuff here for admins or editors
-            ?><input type="button"
-    		onclick="location.href='<?php echo add_query_arg('view', 'table');?>';"
-    		value="Table" /> <?php
-        }
-        ?>
+        	<input type="button" onclick="location.href='<?php echo add_query_arg(array('apf-orderby'=>'num','view'=>'excerpt'));?>';"
+        		value="List 1-9" /> 
+        	<input type="button" onclick="location.href='<?php echo add_query_arg(array('apf-orderby'=>'alpha','view'=>'excerpt'));?>';"
+        		value="List A-Z" /> 
+        	<input type="button" onclick="location.href='<?php echo add_query_arg(array('apf-orderby'=>'new','view'=>'excerpt'));?>';"
+        		value="List New" /> 
+        	<input type="button" onclick="location.href='<?php echo add_query_arg('view', 'map');?>';"
+        		value="Map" /><?php
+            if (current_user_can('editor') || current_user_can('manager') || current_user_can('administrator')) {
+                // stuff here for admins or editors
+                ?><input type="button"
+        		onclick="location.href='<?php echo add_query_arg('view', 'table');?>';"
+        		value="Table" /><?php
+            }?>
         </div><?php
     }
 }
@@ -254,6 +281,9 @@ function APF_the_loop()
         if ('map' == $APF_view_type) {
             include_once 'google-map-helpers.php';
             ?><div class="acf-map"><?php
+        /*
+         * 'pins' view is hidden admin capability for exporting print map data
+         */
         } elseif ('pins' == $APF_view_type) {
             ?><div class="APF-table"><?php
             $fields = array(
@@ -363,13 +393,16 @@ if (! function_exists('twentyseventeen_comments')) :
      */
     function twentyseventeen_comments()
     {
-        $post_type = get_post_type();
-        if (is_singular()) {
-            printf('<span class="byline"><span class="author vcard"><span class="screen-reader-text">%1$s </span><a class="url fn n" href="%2$s">' . 'Author: ' . '%3$s</a></span></span>', _x('Author', 'Used before post author name.', 'twentyseventeen'), esc_url(get_author_posts_url(get_the_author_meta('ID'))), get_the_author());
-        }
+        global $post;
+        // $post_type = get_post_type();
+        //if (is_singular()) {
+        //    printf('<span class="byline"><span class="author vcard"><span class="screen-reader-text">%1$s </span><a class="url fn n" href="%2$s">' . 'Author: ' . '%3$s</a></span></span>', _x('Author', 'Used before post author name.', 'twentyseventeen'), esc_url(get_author_posts_url(get_the_author_meta('ID'))), get_the_author());
+        //}
+        echo '<span class="APF-email-attendance"><a href="mailto:attendance@arlingtonporchfest.org?subject=Attendance estimate for ' . $post->post_title . '&body=Hi Porchfest Organizers, the number of people I see now at ' . $post->post_title . ' is the following: ">Click & email attendance estimate!</a></span>';
+        /*
         if (! is_single() && ! post_password_required() && (comments_open() || get_comments_number())) {
             echo '<span class="comments-link">';
-            /* translators: %s: post title */
+           
             if (('band' == $post_type) || ('porch' == $post_type) || ('exhibit' == $post_type)) {
                 comments_popup_link(sprintf(__('Contact this ' . get_post_type() . '<span class="screen-reader-text"> on %s</span>', 'twentyseventeen'), get_the_title()));
             } else {
@@ -377,6 +410,7 @@ if (! function_exists('twentyseventeen_comments')) :
             }
             echo '</span>';
         }
+        */
     }
 endif;
 
@@ -464,13 +498,13 @@ function APF_display_one_band_for_porch($slot)
     if ($slot['status'] == 'NA') {
         return;
     } elseif ($slot['status'] == 'Looking for a band') {
-        echo 'Looking for a band @ ';
+        echo '<div class="APF-looking-slot">Looking for a band @ ';
     } elseif ($slot['status'] == 'Have a band') {
         if ($slot['band_post']) {
             $post = $slot['band_post'];
             setup_postdata($post);
             ?>
-<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
+<div class="APF-scheduled-slot"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
 @ 
                 	<?php
             
@@ -480,13 +514,13 @@ function APF_display_one_band_for_porch($slot)
         }
     } elseif ($slot['status'] == 'Have an unlisted band') {
         if ($slot['band_name']) {
-            echo $slot['band_name'] . ' @ ';
+            echo '<div class="APF-scheduled-slot">'.$slot['band_name'] . ' @ ';
         }
     } else {
         return;
     }
     if ($slot['status'] != 'NA') {
-        ?><?php APF_display_porch_times( $slot['perf_times'], $slot['status'] ); ?><?php
+        ?><?php APF_display_porch_times( $slot['perf_times'], $slot['status'] ); ?></div><?php
     }
 }
 

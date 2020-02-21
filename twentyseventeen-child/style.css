@@ -31,6 +31,32 @@ div.uwp-profile-nav {
 	margin-right: 0.5em;
 }
 
+.APF-marker-label {
+	display: inline-block;
+	font-size: 60%;
+	width: 2.2em;
+	margin: 0.5em;
+	background-color: black;
+	color: white;
+	font-weight: bold;
+	text-align: center;
+}
+
+.APF-not-printed {
+	display: inline-block;
+	font-size: 60%;
+	width: 2.5em;
+	margin: 0.5em;
+	background-color: grey;
+	color: white;
+	font-weight: bold;
+	text-align: center;
+}
+
+.APF-looking-slot {
+	display: none;
+}
+
 .entry-header .APF-entry-title {
 	display: inline;
 }
@@ -64,7 +90,7 @@ div.uwp-profile-nav {
 
 .APF-listing-major-info {
 	display: inline-block;
-	width: 60%;
+	width: 100%;
 	vertical-align: top;
 
 }
@@ -74,7 +100,7 @@ div.uwp-profile-nav {
 }
 
 .APF-listing-minor-info {
-	display: inline-block;
+	display: none;
 	width: 37%;
 	vertical-align: top;
 }
@@ -84,7 +110,16 @@ div.uwp-profile-nav {
 }
 
 div.acf-map h2, div.acf-map h3, div.acf-map h4 {
-	font-size: large;
+	font-size: 100%;
+	font-weight: bold;
+}
+
+div.acf-map div.APF-listing-description {
+	font-size: 70%;
+}
+
+div.acf-map div.APF-post-icon, div.acf-map div.APF-marker-label, div.acf-map div.APF-listing-footer {
+	display: none;
 }
 
 div.acf-map .entry-title a {
@@ -99,14 +134,16 @@ div.acf-map div.APF-listing-minor-info {
 	display: none;
 }
 
-div.APF-view-tabs input {
+div.APF-view-tabs {
 	display: inline;
 }
 
 div.APF-view-tabs input {
+	display: inline;
 	background-color: #c79633;
-	padding: 0.2em;
-	width: 5em;
+	padding: 0.12em;
+	width: 6em;
+	margin-right: 0.3em;
 }
 
 .entry-footer {
@@ -122,6 +159,15 @@ div.APF-view-tabs input {
 	background-color: #ddd;
 	font-family: "Libre Franklin", "Helvetica Neue", helvetica, arial, sans-serif;
 	font-size: 0.87rem;
+	font-weight: 800;
+}
+
+.entry-footer span.APF-email-attendance a {
+	padding: 0.33em 0.33em;
+	color: #333;
+	background-color: #bbb;
+	font-family: "Libre Franklin", "Helvetica Neue", helvetica, arial, sans-serif;
+	font-size: 0.8rem;
 	font-weight: 800;
 }
 
