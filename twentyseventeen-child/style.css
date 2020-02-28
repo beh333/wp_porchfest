@@ -53,9 +53,11 @@ div.uwp-profile-nav {
 	text-align: center;
 }
 
+/*
 .APF-looking-slot {
 	display: none;
 }
+*/
 
 .entry-header .APF-entry-title {
 	display: inline;
@@ -100,7 +102,7 @@ div.uwp-profile-nav {
 }
 
 .APF-listing-minor-info {
-	display: none;
+	/* display: none; */
 	width: 37%;
 	vertical-align: top;
 }
@@ -175,6 +177,13 @@ div.APF-view-tabs input {
 	padding: 0.33em 1.6em;
 	color: #444;
 	background-color: #ddd;
+}
+
+a.APF-login {
+	padding: 0.33em 1.6em;
+	font-weight: 800;
+	color: #333;
+	background-color: #aaa;
 }
 
 div.acf-map div.APF-listing-description {

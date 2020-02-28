@@ -1,5 +1,39 @@
 <?php
 
+/**
+ * Redirect user after successful login.
+ *
+ * @param string $redirect_to URL to redirect to.
+ * @param string $request URL the user is coming from.
+ * @param object $user Logged user's data.
+ * @return string
+ */
+function APF_login_redirect( $redirect_to, $request, $user ) {
+    //is there a user to check?
+    if ( isset( $user->roles ) && is_array( $user->roles ) ) {
+        return home_url('sign-up');
+    }
+    return $redirect_to;
+} 
+add_filter( 'login_redirect', 'APF_login_redirect', 10, 3 );
+
+/**
+ * Redirect user after successful logout.
+ *
+ * @param string $redirect_to URL to redirect to.
+ * @param string $request URL the user is coming from.
+ * @param object $user Logged user's data.
+ * @return string
+ */
+function APF_logout_redirect( $redirect_to, $request, $user ) {
+    //is there a user to check?
+    if ( isset( $user->roles ) && is_array( $user->roles ) ) {
+        return home_url();
+    }
+    return $redirect_to;
+} 
+add_filter( 'logout_redirect', 'APF_logout_redirect', 10, 3 );
+
 function APF_assign_porchfester_author_func($query_args, $r){
     $query_args['who'] = 'porchfester';
     return $query_args;
@@ -101,8 +135,14 @@ function APF_listing_icon($listing_type)
 
 function APF_marker_with_label()
 {
-    $marker_label = get_field('marker_label');
-    if (($marker_label == '') || ($marker_label == '9999')) {
+    $marker_label = '_';
+    /*
+     * Use this code after marker labels are present
+     */
+    //$marker_label = get_field('marker_label');
+    if ($marker_label == '_') {
+        return '';
+    } elseif (($marker_label == '') || ($marker_label == '9999')) {
         return '<div class="APF-not-printed">New</div>';
     } else {
         return '<div class="APF-marker-label">'.$marker_label.'</div>';
@@ -217,8 +257,11 @@ function APF_view_tabs()
     if (!APF_blog_page()) {
         ?>
     	<div class="APF-view-tabs">
-        	<input type="button" onclick="location.href='<?php echo add_query_arg(array('apf-orderby'=>'num','view'=>'excerpt'));?>';"
+        	<!--
+               Use this tab after map codes are present
+            <input type="button" onclick="location.href='<?php echo add_query_arg(array('apf-orderby'=>'num','view'=>'excerpt'));?>';"
         		value="List 1-9" /> 
+            -->
         	<input type="button" onclick="location.href='<?php echo add_query_arg(array('apf-orderby'=>'alpha','view'=>'excerpt'));?>';"
         		value="List A-Z" /> 
         	<input type="button" onclick="location.href='<?php echo add_query_arg(array('apf-orderby'=>'new','view'=>'excerpt'));?>';"
@@ -398,8 +441,13 @@ if (! function_exists('twentyseventeen_comments')) :
         //if (is_singular()) {
         //    printf('<span class="byline"><span class="author vcard"><span class="screen-reader-text">%1$s </span><a class="url fn n" href="%2$s">' . 'Author: ' . '%3$s</a></span></span>', _x('Author', 'Used before post author name.', 'twentyseventeen'), esc_url(get_author_posts_url(get_the_author_meta('ID'))), get_the_author());
         //}
-        echo '<span class="APF-email-attendance"><a href="mailto:attendance@arlingtonporchfest.org?subject=Attendance estimate for ' . $post->post_title . '&body=Hi Porchfest Organizers, the number of people I see now at ' . $post->post_title . ' is the following: ">Click & email attendance estimate!</a></span>';
         /*
+         * Use this code on event day for attendance reporting
+         *
+        echo '<span class="APF-email-attendance"><a href="mailto:attendance@arlingtonporchfest.org?subject=Attendance estimate for ' . $post->post_title . '&body=Hi Porchfest Organizers, the number of people I see now at ' . $post->post_title . ' is the following: ">Click & email attendance estimate!</a></span>';
+         */
+
+        
         if (! is_single() && ! post_password_required() && (comments_open() || get_comments_number())) {
             echo '<span class="comments-link">';
            
@@ -410,7 +458,7 @@ if (! function_exists('twentyseventeen_comments')) :
             }
             echo '</span>';
         }
-        */
+        
     }
 endif;
 
