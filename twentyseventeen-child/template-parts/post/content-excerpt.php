@@ -38,7 +38,7 @@ global $post
 		<?php the_excerpt(); ?></div><?php 
 		APF_major_listing_info(); ?>
 		<div class='APF-listing-minor-info'>
-    		<div class='APF-rain'><?php the_terms( $post->ID, 'raindate', 'Rain date: '); ?></div>
+    		<div class='APF-rain'><?php the_terms( $post->ID, 'weather', 'Will Occur : '); ?></div>
     		<div class='APF-misc'><?php 
                   $post_type = get_post_type();
                   $size = False;

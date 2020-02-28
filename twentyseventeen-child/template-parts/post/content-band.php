@@ -54,7 +54,7 @@ global $post
 		<?php APF_major_listing_info(); ?>
 
 		<div class='APF-listing-minor-info'>
-			<div class='APF-rain'><?php the_terms( $post->ID, 'raindate', 'Rain date: '); ?></div>
+			<div class='APF-rain'><?php the_terms( $post->ID, 'weather', 'Will Perform : '); ?></div>
 			<div class='APF-misc'><?php $field = get_field_object('size');  echo $field['label'] . ': ' . $field['value']; ?></div>
 		</div><?php
 
