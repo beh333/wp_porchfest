@@ -73,7 +73,7 @@ function APF_update_POST_title($post_id)
         if (! $map_marker) {
             return;
         }
-        $address = APF_shorten_address($map_marker['address']);
+        $address = APF_shorten_address(json_decode(stripslashes($map_marker), True)['address']);
         $my_post = array(
             'ID' => $post_id,
             'post_title' => $address,
@@ -92,7 +92,7 @@ function APF_thanks_for_listing($listing_type, $post_id, $post)
     $subject = 'Thanks for registering your ' . $listing_type . '. *** SAVE THIS EMAIL ***';
     $message = '<h2>Thanks for Participating in Arlington Porchfest!</h2>';
     $message .= '<p>Dear ' . $author->display_name . ',</p>';
-    $message .= '<p>Thank you for registering your ' . $listing_type . ', &quot;' . $title . ',&quot; with Arlington Porchfest 2019. ';
+    $message .= '<p>Thank you for registering your ' . $listing_type . ', &quot;' . $title . ',&quot; with Arlington Porchfest. ';
     $post_url = get_permalink( $post_id );
     $message .= '<p>You can view your ' . $listing_type . ' <a href="' . $post_url . '">here</a>. ';
     $edit_url = add_query_arg( array('post'=>$post_id, 'action'=>'edit'), admin_url('post.php') );
@@ -509,6 +509,10 @@ function APF_schedule_listing($listing_type, $listing_post, $porch_post, $terms)
         $porch_label = get_field('marker_label', $porch_post->ID);
         update_field('marker_label', $porch_label, $listing_post->ID);
         
+        // Store porch weather plan with listing
+        $weather_plan = wp_get_post_terms($porch_post->ID, 'weather')[0]->term_id;
+        wp_set_post_terms($listing_post->ID, array($weather_plan), 'weather', False);
+
         // reset status for listing post
         if ('band' == $listing_type) {
             wp_set_post_terms($listing_post->ID, array(
@@ -574,7 +578,8 @@ function APF_cancel_listing($listing_type, $listing_post, $porch_post)
         update_field('porch_address', '', $listing_post->ID);
         update_field('marker_label', '9999', $listing_post->ID);
         update_field('num_order_code', '9999', $listing_post->ID);
-        
+        wp_set_post_terms($listing_post->ID, array(), 'weather', False);
+
         // Set listing status to Looking for porch
         APF_set_listing_looking($listing_post->ID);
         // If band then find the exact porch slot and unschedule it

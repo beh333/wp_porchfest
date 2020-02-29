@@ -35,9 +35,8 @@ function APF_validate_map_marker($valid, $value, $field, $input)
     if (! $valid) {
         return $valid;
     }
-    
     $current_id = $_POST['post_ID'];
-    $address = APF_shorten_address($value['address']);
+    $address = APF_shorten_address(json_decode(stripslashes($value), True)['address']);
     if ($address) {
         $same_title = get_posts(array(
             'numberposts' => - 1,
@@ -55,6 +54,62 @@ function APF_validate_map_marker($valid, $value, $field, $input)
 }
 add_filter('acf/validate_value/name=map_marker', 'APF_validate_map_marker', 10, 4);
 
+/*
+ * Validate porch zone with slot times
+ */
+function APF_validate_zone_schedule($valid, $value, $field, $input)
+{
+    global $APF_max_slot;
+    global $APF_porch_slot_key;
+
+    /*
+     * Gather array of all active/desired performance times for all slots
+     */
+    $perf_times = array();
+    for ($slot = 1; $slot <= $APF_max_slot; $slot = $slot + 1) {
+        $status_of_slot = $_POST['acf'][$APF_porch_slot_key['status_of_slot'][$slot]];
+        if (in_array($status_of_slot, array(
+            'Have a band',
+            'Have an unlisted band',
+            'Looking for a band'
+        ))) {
+            $perf_times += $_POST['acf'][$APF_porch_slot_key['perf_times'][$slot]];
+        }
+    }
+    /*
+     * Make sure no more than 4 hours total
+     */
+    if (count($perf_times) > 1) {
+        $first_time = min($perf_times);
+        $last_time = max($perf_times);
+        if ($last_time - $first_time > 3) {
+            $valid = 'Please limit total time to no more than 4 hours from start of first performance to end of last performance.';
+            return $valid;
+        }
+    }
+    /*
+     * Make sure east zone and west zone constraints are respected
+     * This is a hack using taxonomy IDs 36-41 for the hours 12PM-5PM
+     */
+    if (count($perf_times) > 0) {
+        if ($value == 'west') {
+            if (intval(max($perf_times)) > 39) {
+                $valid = 'Please end by 4PM in the West Zone.';
+                return $valid;
+            }
+        }
+        if ($value == 'east') {
+            if (intval(min($perf_times)) < 38) {
+                $valid = 'Please start 2PM or later in the East Zone.';
+                return $valid;
+            }
+        }    
+    }
+    
+    return $valid;
+}
+add_filter('acf/validate_value/name=zone', 'APF_validate_zone_schedule', 14, 4);
+ 
 /*
  * Validate porch slot times do not overlap
  */

@@ -1,5 +1,10 @@
 <?php
 
+function echo_debug( $what ) {
+    echo '<pre>'.print_r( $what, true ).'</pre>';
+    exit();
+}
+
 // global $APF_view_type;
 $APF_porch_slots = array(
     1,
@@ -117,6 +122,8 @@ function search_for_porches_and_bands($query)
 
     if (($query->is_main_query() && isset($_GET['post_types'])) ||  $query->is_archive() || $query->is_search() ||  $query->is_tag() || $query->is_category() || $query->is_author()) {
         $query->set('post_type', array('porch', 'band', 'exhibit'));
+        /* 
+         * Use num after map labels are present
         $orderby = 'num';
         if (isset($_GET['apf-orderby'])) {
             $orderby = $_GET['apf-orderby'];
@@ -133,6 +140,15 @@ function search_for_porches_and_bands($query)
             $query->set('meta_key', 'marker_label');
             $query->set('meta_value', '9999');
         }
+         */
+        if (isset($_GET['apf-orderby'])) {
+            $orderby = $_GET['apf-orderby'];
+        }
+        if ('alpha' == $orderby) {
+            $query->set('orderby', 'meta_value');
+            $query->set('meta_key', 'title_for_sorting');
+            $query->set('order', 'ASC');
+        }   
         if (isset($_GET['view'])) {
             $view_type = $_GET['view'];
             if (($view_type == 'map') || ($view_type == 'table') || ($view_type == 'pins')) {
