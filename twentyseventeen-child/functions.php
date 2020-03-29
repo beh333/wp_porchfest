@@ -11,7 +11,7 @@
 function APF_login_redirect( $redirect_to, $request, $user ) {
     //is there a user to check?
     if ( isset( $user->roles ) && is_array( $user->roles ) ) {
-        return home_url('sign-up');
+        return home_url();
     }
     return $redirect_to;
 } 
@@ -463,7 +463,7 @@ if (! function_exists('twentyseventeen_comments')) :
 endif;
 
 
-    // add_action('acf/render_field_settings/type=text', 'add_readonly_and_disabled_to_text_field');
+// add_action('acf/render_field_settings/type=text', 'add_readonly_and_disabled_to_text_field');
 function add_readonly_and_disabled_to_text_field($field)
 {
     acf_render_field_setting($field, array(
