@@ -73,7 +73,7 @@ function APF_validate_zone_schedule($valid, $value, $field, $input)
             'Have an unlisted band',
             'Looking for a band'
         ))) {
-            $perf_times += $_POST['acf'][$APF_porch_slot_key['perf_times'][$slot]];
+            $perf_times[] = $_POST['acf'][$APF_porch_slot_key['perf_times'][$slot]];
         }
     }
     /*
