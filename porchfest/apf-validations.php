@@ -72,16 +72,16 @@ function APF_validate_zone_schedule($valid, $value, $field, $input)
             'Have a band',
             'Have an unlisted band',
             'Looking for a band'
-        ))) {
-            $perf_times[] = $_POST['acf'][$APF_porch_slot_key['perf_times'][$slot]];
+        ))) {  // Extend array with the custom field ID of the slot time
+            $perf_times[] = $_POST['acf'][$APF_porch_slot_key['perf_times'][$slot]][0];
         }
     }
     /*
      * Make sure no more than 4 hours total
      */
     if (count($perf_times) > 1) {
-        $first_time = min($perf_times);
-        $last_time = max($perf_times);
+        $first_time = intval(min($perf_times));
+        $last_time = intval(max($perf_times));
         if ($last_time - $first_time > 3) {
             $valid = 'Please limit total time to no more than 4 hours from start of first performance to end of last performance.';
             return $valid;
@@ -89,7 +89,7 @@ function APF_validate_zone_schedule($valid, $value, $field, $input)
     }
     /*
      * Make sure east zone and west zone constraints are respected
-     * This is a hack using taxonomy IDs 36-41 for the hours 12PM-5PM
+     * This is a hack using custom field IDs 36-41 for the hours 12PM-5PM
      */
     if (count($perf_times) > 0) {
         if ($value == 'west') {
@@ -257,6 +257,23 @@ function APF_validate_named_exhibit($valid, $value, $field, $input)
     return $valid;
 }
 add_filter('acf/validate_value/name=exhibit_name', 'APF_validate_named_exhibit', 10, 4);
+
+/*
+ * Validate registration confirmation
+ */
+function APF_validate_registration_confirmation($valid, $value, $field, $input)
+{
+    // bail early if value is already invalid
+    if (! $valid || ($value == '')) {
+        return $valid;
+    }
+    if ($value != 'yes') {
+        $valid = 'Please confirm your registration.';
+    }
+    return $valid;
+}
+add_filter('acf/validate_value/name=registration-confirmation', 'APF_validate_registration_confirmation', 10, 4);
+
 
 /*
  * Confirmed cancelation of a band or exhibit performance
