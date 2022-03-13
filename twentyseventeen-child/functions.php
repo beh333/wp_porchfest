@@ -84,6 +84,14 @@ function hide_update_notice_to_all_but_admin_users()
 }
 add_action( 'admin_head', 'hide_update_notice_to_all_but_admin_users', 1 );
 
+function ds_admin_theme_style() {
+    if (!current_user_can('manage_options')) {
+        echo '<style>.update-nag, .updated, .error, .is-dismissible { display: none; }</style>';
+    }
+}
+add_action('admin_enqueue_scripts', 'ds_admin_theme_style');
+add_action('login_enqueue_scripts', 'ds_admin_theme_style');
+
 function APF_post_title()
 {
     $image_url = APF_listing_icon(get_post_type());
