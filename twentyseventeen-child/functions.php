@@ -445,7 +445,7 @@ if (! function_exists('twentyseventeen_comments')) :
     function twentyseventeen_comments()
     {
         global $post;
-        // $post_type = get_post_type();
+        $post_type = get_post_type();
         //if (is_singular()) {
         //    printf('<span class="byline"><span class="author vcard"><span class="screen-reader-text">%1$s </span><a class="url fn n" href="%2$s">' . 'Author: ' . '%3$s</a></span></span>', _x('Author', 'Used before post author name.', 'twentyseventeen'), esc_url(get_author_posts_url(get_the_author_meta('ID'))), get_the_author());
         //}
