@@ -2,7 +2,7 @@
 
 /**
  * @package PorchFest_PLUS
- * @version 1.3
+ * @version 1.4
  */
 
 /*
@@ -15,7 +15,7 @@
  * Then use this plugin to keep info validated and synchronized.
  *
  * Author: Bruce Hoppe
- * Version: 1.3
+ * Version: 1.4
  * Author URI:
  */
 include_once 'apf-utilities.php';
@@ -98,12 +98,8 @@ function APF_thanks_for_listing($listing_type, $post_id, $post)
     $edit_url = add_query_arg( array('post'=>$post_id, 'action'=>'edit'), admin_url('post.php') );
     $message .= 'You can edit your ' . $listing_type . ' <a href="' . $edit_url . '">here</a>.</p>';
     $message .= '<p>You must be logged in as &quot;' . $author->user_login . '&quot; in order to edit your ' . $listing_type . '.</p>';
-    $message .= '<h3>Support Arlington Porchfest!</h3>';
-    $message .= '<p>Arlington Porchfest is a free, community event powered by the time, energy, and support of lots of musicians, porch hosts, volunteers and friends - like you! ';
-    $message .= '<p>Consider donating to the Arlington Center for the Arts to make this year&#39;s Porchfest the best yet! ';
-    $message .= 'You&#39;ll help keep free, community music ringing through Arlington&#39;s neighborhoods in a festive daylong celebration of the arts! ';
-    $message .= '<em>All donations are tax-deductible.</em></p>';
-    $message .= '<p><a href="https://www.tfaforms.com/453843">Donate here</a>.</p>';
+    $message .= '<h4>Supporting Arlington Porchfest</h4>';
+    $message .= '<p>Arlington Porchfest is a free, community event powered by the time, energy, and support of lots of musicians, porch hosts, volunteers and friends - like you! If you know community members interested in supporting this event, please feel free to refer them to ACA’s website where they can learn more about making a <a href="https://www.acarts.org/donate" target="_blank">tax-deductible donation</a> to ACA, becoming a <a href="https://www.acarts.org/arlington-porchfest" target="_blank">sponsor of Arlington Porchfest</a>, or <a href="https://www.acarts.org/volunteer" target="_blank">volunteering</a> at public events like these!</p>';
     $from = 'Arlington Porchfest';
     $from_email = get_option('admin_email');
     $headers = 'From: ' . $from . ' <' . $from_email . '>' . "\r\n";
