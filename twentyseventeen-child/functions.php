@@ -89,8 +89,12 @@ function ds_admin_theme_style() {
         echo '<style>.update-nag, .updated, .error, .is-dismissible { display: none; }</style>';
     }
 }
-add_action('admin_enqueue_scripts', 'ds_admin_theme_style');
-add_action('login_enqueue_scripts', 'ds_admin_theme_style');
+/*
+ * Do not disable admin notices, so that porchfesters see "view post" notices
+ * i.e. comment out the two lines below
+ */
+//add_action('admin_enqueue_scripts', 'ds_admin_theme_style');
+//add_action('login_enqueue_scripts', 'ds_admin_theme_style');
 
 function APF_post_title()
 {
@@ -145,9 +149,10 @@ function APF_marker_with_label()
 {
     $marker_label = '_';
     /*
-     * Use this code after marker labels are present
+     * Use this code after marker labels are present (one line)
      */
     //$marker_label = get_field('marker_label');
+     
     if ($marker_label == '_') {
         return '';
     } elseif (($marker_label == '') || ($marker_label == '9999')) {
@@ -208,7 +213,7 @@ function APF_major_listing_info()
 	if ('Interested in exhibiting' == $exhibit_interest) {
 	    $exhibit_status = get_field('status_of_exhibit');
 	    if ($exhibit_status == 'Looking for an exhibit') {
-	        echo 'Looking for visual arts exhibit';
+	        echo ''; /* echo 'Looking for visual arts exhibit'; */
 	    } else {
 	        echo 'Visual arts exhibit: ';
 	        if ($exhibit_status == 'Have an exhibit') {
@@ -267,13 +272,18 @@ function APF_view_tabs()
     	<div class="APF-view-tabs">
         	<!--
                Use this tab after map codes are present
+			
             <input type="button" onclick="location.href='<?php echo add_query_arg(array('apf-orderby'=>'num','view'=>'excerpt'));?>';"
         		value="List 1-9" /> 
             -->
         	<input type="button" onclick="location.href='<?php echo add_query_arg(array('apf-orderby'=>'alpha','view'=>'excerpt'));?>';"
         		value="List A-Z" /> 
+            <!--
+                Use this tab after registration has closed
+			
         	<input type="button" onclick="location.href='<?php echo add_query_arg(array('apf-orderby'=>'new','view'=>'excerpt'));?>';"
         		value="List New" /> 
+            -->
         	<input type="button" onclick="location.href='<?php echo add_query_arg('view', 'map');?>';"
         		value="Map" /><?php
             if (current_user_can('editor') || current_user_can('manager') || current_user_can('administrator')) {
@@ -451,12 +461,11 @@ if (! function_exists('twentyseventeen_comments')) :
         //}
         /*
          * Use this code on event day for attendance reporting
-         *
-        echo '<span class="APF-email-attendance"><a href="mailto:attendance@arlingtonporchfest.org?subject=Attendance estimate for ' . $post->post_title . '&body=Hi Porchfest Organizers, the number of people I see now at ' . $post->post_title . ' is the following: ">Click & email attendance estimate!</a></span>';
          */
-
-        
-        if (! is_single() && ! post_password_required() && (comments_open() || get_comments_number())) {
+        $event_day = false;
+        if ($event_day) {
+            echo '<span class="APF-email-attendance"><a href="mailto:attendance@arlingtonporchfest.org?subject=Attendance estimate for ' . $post->post_title . '&body=Hi Porchfest Organizers, the number of people I see now at ' . $post->post_title . ' is the following: ">Click & email attendance estimate!</a></span></br>';
+        } elseif (! is_single() && ! post_password_required() && (comments_open() || get_comments_number())) {
             echo '<span class="comments-link">';
            
             if (('band' == $post_type) || ('porch' == $post_type) || ('exhibit' == $post_type)) {
@@ -554,6 +563,11 @@ function APF_display_one_band_for_porch($slot)
     if ($slot['status'] == 'NA') {
         return;
     } elseif ($slot['status'] == 'Looking for a band') {
+        /*
+         * Use this one line of code to hide looking slots? (What about style.css?)
+         *
+        return;
+         */
         echo '<div class="APF-looking-slot">Looking for a band @ ';
     } elseif ($slot['status'] == 'Have a band') {
         if ($slot['band_post']) {
