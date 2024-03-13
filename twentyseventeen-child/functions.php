@@ -603,12 +603,13 @@ function APF_display_all_bands_for_porch($slots)
 
 function APF_enqueue_styles()
 {
-    $parent_style = 'twentyseventeen-style';
-    
-    wp_enqueue_style($parent_style, get_template_directory_uri() . '/style.css');
-    wp_enqueue_style('child-style', get_stylesheet_directory_uri() . '/style.css', array(
-        $parent_style
-    ), wp_get_theme()->get('Version'));
+    wp_enqueue_style( 
+        'twentyseventeen', 
+        get_parent_theme_file_uri( 'style.css' ),
+        array(),
+        wp_get_theme()->get( 'Version' ),
+        'all'
+    );
 }
 
 add_action('wp_enqueue_scripts', 'APF_enqueue_styles');
