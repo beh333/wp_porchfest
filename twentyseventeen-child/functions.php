@@ -50,14 +50,14 @@ function APF_tag_cloud_limit($args){
 add_filter( 'widget_tag_cloud_args', 'APF_tag_cloud_limit' );
 
 function APF_remove_admin_bar() {
-    if (!current_user_can('administrator')) {
+    if (!current_user_can('edit_others_posts')) {
         show_admin_bar(false);
     }
 }
 add_action('after_setup_theme', 'APF_remove_admin_bar');
 
 function remove_menus() {
-    if (!current_user_can('administrator')) {
+    if (!current_user_can('edit_others_posts')) {
         remove_menu_page( 'index.php' );                  //Dashboard
         remove_menu_page( 'jetpack' );                    //Jetpack*
         remove_menu_page( 'edit.php' );                   //Posts
