@@ -228,7 +228,7 @@ function APF_major_listing_info()
             }
         }
     ?></div>
-    <div class='APF-genre'><?php 
+    <div class='APF-exhibit-genre'><?php 
         if (('porch' == $listing_type) || ('exhibit' == $listing_type)) {
             the_terms( $post->ID, 'exhibit_genre', 'Genre(s): ', ', ', ' ' ); 
         } ?>

@@ -54,11 +54,13 @@ div.uwp-profile-nav {
 }
 
 /*
+ * uncomment this for game day
+ *
 .APF-looking-slot {
 	display: none;
 }
-*/
-
+ */
+ 
 .entry-header .APF-entry-title {
 	display: inline;
 }
@@ -97,13 +99,13 @@ div.uwp-profile-nav {
 
 }
 
-.APF-listing-major-info .APF-exhibit, .APF-listing-major-info .APF-genre, .APF-listing-footer {
+.APF-listing-major-info .APF-exhibit, .APF-listing-major-info .APF-genre, .APF-listing-minor-info, .APF-listing-footer {
 	margin-top: 0.6em;
 }
 
 .APF-listing-minor-info {
-	/* display: none; 
-	width: 37%; */
+	display: block; 
+	width: 100%;
 	vertical-align: top;
 }
 
